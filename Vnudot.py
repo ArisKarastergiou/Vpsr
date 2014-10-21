@@ -3,6 +3,7 @@
 # Reads in a file of residuals and the nudot used to produce it and
 # produces a smooth nudot vs time array and plot
 
+
 import argparse
 import pylab as pb
 pb.ion()
