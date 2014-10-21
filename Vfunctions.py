@@ -137,6 +137,7 @@ def gpinferred(xtraining, ytraining, xnew, rmsnoise):
 #    model.constrain_bounded('rbf_lengthscale', 100, 300)
     model.constrain_bounded('Mat32_lengthscale', 15, 300)
     model.optimize()
+    model.optimize_restarts(num_restarts = 10)
     print model
     yp, yp_var, a, b = model.predict(xnew)  # GP at xtraining points for outlier detection
     return np.array(yp.T), np.array(yp_var.T)
