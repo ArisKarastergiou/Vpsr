@@ -3,14 +3,18 @@ import numpy as np
 import GPy
 import matplotlib.pyplot as plt
 import scipy.spatial as sp
+import math
+import os
 
 def makeoriginalplots(pulsar, data, mjd):
     nbins = data.shape[0]
     nprofiles = data.shape[1]
+    if not (os.path.exists('./{0}/original_profiles'.format(pulsar))):
+        os.mkdir('./{0}/original_profiles'.format(pulsar))
     for i in range(nprofiles):
         plt.plot(data[:,i])
         plt.suptitle('{0}'.format(mjd[i]), fontsize=14, fontweight='bold')
-        plt.savefig('./{0}/pre_anything/{1}_{2}.png' .format(pulsar,int(math.floor(mjd[i])),i))
+        plt.savefig('./{0}/original_profiles/{1}_{2}.png' .format(pulsar,int(math.floor(mjd[i])),i))
         plt.clf()
 
 def aligndata(baselineremoved, brightest):
@@ -180,4 +184,3 @@ def DKD(X1, X2, theta):
     K = (theta[0]/(theta[1]**2)) * np.exp(- D2 / (2*(theta[1]**2))) * (1 - D2/(theta[1]**2)) 
 
     return np.matrix(K)
-
