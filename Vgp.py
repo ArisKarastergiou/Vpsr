@@ -109,12 +109,11 @@ for i in range(inferredarray.shape[0]):
 
 print np.amax(linferredarray), np.log10(limitdifference)
 
+outputfile = './{0}/{0}_linferred_array.dat' .format(pulsar)
+np.savetxt(outputfile, linferredarray)
 
 if (args.diagnosticplots):
     yaxis = np.linspace(leftbin/allbins, rightbin/allbins, bins)
     Vf.makemap(inferredarray, -limitdifference, limitdifference, mjdinfer, yaxis, mjd, 'MJD dates', 'pulse phase', pulsar, './{0}/{1}_inferreddata.png'.format(pulsar,outfile))
     Vf.makemap(linferredarray, -np.log10(limitdifference), np.log10(limitdifference), mjdinfer, yaxis, mjd, 'MJD dates', 'pulse phase', pulsar, './{0}/{1}_linferreddata.png'.format(pulsar,outfile))
     Vf.makemap(inferredvar, 0 , np.amax(inferredvar), mjdinfer, yaxis, mjd, 'MJD dates', 'pulse phase', pulsar, './{0}/{1}_inferredvariance.png'.format(pulsar,outfile))
-
-        
-        
