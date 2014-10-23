@@ -6,19 +6,23 @@ import scipy.spatial as sp
 import math
 import os
 
-def makeplots(pulsar, data, mjd, dir):
+def makeplots(pulsar, data, mjd, dir, template=None, yllim=None, yulim=None):
     nbins = data.shape[0]
     nprofiles = data.shape[1]
     if not (os.path.exists('./{0}/{1}'.format(pulsar,dir))):
         os.mkdir('./{0}/{1}'.format(pulsar,dir))
     for i in range(nprofiles):
         plt.plot(data[:,i])
+        if template!=None:
+            plt.plot(template,'r')
+        if yllim !=None or yulim !=None:
+            plt.ylim(yllim,yulim)
         plt.suptitle('{0}'.format(mjd[i]), fontsize=14, fontweight='bold')
         plt.savefig('./{0}/{1}/{2}_{3}.png' .format(pulsar,dir,int(math.floor(mjd[i])),i))
         plt.clf()
 
 
-def aligndata(baselineremoved, brightest):
+def aligndata(baselineremoved, brightest, pulsar):
     nbins = baselineremoved.shape[0]
     nprofiles = baselineremoved.shape[1]
     template = baselineremoved[:,brightest]
@@ -29,7 +33,7 @@ def aligndata(baselineremoved, brightest):
     newtemplate = np.roll(template, fixedlag)
     template = newtemplate
     plt.plot(newtemplate)
-    plt.savefig('template.png')
+    plt.savefig('./{0}/{0}_template.png' .format(pulsar))
     plt.clf()
     for i in range(nprofiles):
         xcorr = np.correlate(template,baselineremoved[:,i],"full")
@@ -152,6 +156,8 @@ def gpinferred(xtraining, ytraining, xnew, rmsnoise):
     return np.array(yp.T), np.array(yp_var.T)
 
 def makemap(data, myvmin, myvmax, xaxis, yaxis, xlines, xlinesremoved, xlabel, ylabel, title, outfile, combined = False):
+    fig=plt.figure()
+    fig.set_size_inches(16,10)
     xbins = data.shape[1]
     ybins = data.shape[0]
     plt.imshow(data , aspect="auto",cmap = "RdBu_r", vmin = myvmin, vmax = myvmax)    

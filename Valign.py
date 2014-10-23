@@ -20,7 +20,8 @@ parser = argparse.ArgumentParser(description='Pulsar profile alignment for varia
 parser.add_argument('-f','--filename', help='File 2d data set', required=True)
 parser.add_argument('-p','--pulsar', help='Pulsar name', required=True)
 parser.add_argument('-o','--originalplots', help='make plots of raw data', action='store_true')
-parser.add_argument('-b','--badprofiles', help='make plots of removed profiles', action='store_true')
+parser.add_argument('-b','--badprofiles', help='make plots of bad, removed profiles', action='store_true')
+parser.add_argument('-g','--goodprofiles', help='make plots of good profiles', action='store_true')
 parser.add_argument('-d','--diagnosticplots', help='make image plots', action='store_true')
 parser.add_argument('-a','--autozoom', help='number of regions to autozoom', action='store_true')
 parser.add_argument('-r','--removeoutliers', help='factor of deviation from median baseline rms to remove outliers ', type=float, required='True')
@@ -59,12 +60,6 @@ print 'Remaining array shape:', baselineremoved.shape
 brightestprofile = Vf.findbrightestprofile(baselineremoved,rmsperepoch)
 print 'Brightest profile: ', brightestprofile
 
-# Make plots of removed profiles if needed
-if (args.badprofiles):
-    dir='removed_profiles'
-    Vf.makeplots(pulsar,removedprofiles,mjdremoved,dir)
-
-
 # resample if brightest profile is less than 20 sigma peak
 brightprofpeak = np.max(baselineremoved[:,brightestprofile])
 brightprofrms = rmsperepoch[brightestprofile]
@@ -78,13 +73,16 @@ baselineremoved = resampled
 
 # Align data by the following way: x-correlate profiles with brightest, shift then x-correlate with average
 
-aligned_data, template = Vf.aligndata(baselineremoved, brightestprofile)
+aligned_data, template = Vf.aligndata(baselineremoved, brightestprofile, pulsar)
+
+originaltemplate = np.copy(template)
 
 # Find pulse regions on template
 rmstemplate = np.mean(rmsperepoch) / np.sqrt(baselineremoved.shape[1])
 templatecopy = template
 peaks = 1
 regioncounter = 0
+
 while peaks != 0:
     bs, be, peaks, cuttemplate = Vf.binstartend(templatecopy, rmstemplate) 
     binstartzoom.append(bs)
@@ -114,6 +112,15 @@ for i in range(regioncounter):
     outputfile = '{0}/zoomed_{0}_bins_{1}-{2}.dat' .format(pulsar,left[i],right[i])
     np.savetxt(outputfile, binline)
 
+# Make plots of good profiles if needed
+if (args.goodprofiles):
+    dir='good_profiles'
+    Vf.makeplots(pulsar,aligned_data[binline[0]:binline[1],:],mjdout,dir,template=originaltemplate[binline[0]:binline[1]],yllim=-100,yulim=np.max(aligned_data[binline[0]:binline[1],:]))
+
+# Make plots of removed profiles if needed
+if (args.badprofiles):
+    dir='removed_profiles'
+    Vf.makeplots(pulsar,removedprofiles,mjdremoved,dir,template=originaltemplate,yllim=-100,yulim=np.max(aligned_data[binline[0]:binline[1],:]))
 
 outputfile = '{0}/mjd.txt' .format(pulsar)
 np.savetxt(outputfile, mjdout)
@@ -125,6 +132,6 @@ np.savetxt(outputfile, mjdremoved)
 if (args.diagnosticplots):
     plt.imshow(data,aspect = 'auto')
     plt.colorbar(orientation="horizontal")
-    plt.savefig('rawdata.png')
+    plt.savefig('./{0}/{0}_rawdata.png' .format(pulsar))
     plt.imshow(baselineremoved,aspect = 'auto')
-    plt.savefig('baselined.png')
+    plt.savefig('./{0}/{0}_baselined.png' .format(pulsar))
