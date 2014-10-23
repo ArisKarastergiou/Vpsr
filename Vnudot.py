@@ -107,19 +107,23 @@ print np.diag(K_prime * K1inv * K_prime.T)
 Ulim2 = nudot + 2*nudot_err
 Llim2 = nudot - 2*nudot_err
 
+outputfile = '{0}/{0}_nudot.dat' .format(pulsar)
+np.savetxt(outputfile, nudot)
+outputfile = '{0}/{0}_Llim2.dat' .format(pulsar)
+np.savetxt(outputfile, Llim2)
+outputfile = '{0}/{0}_Ulim2.dat' .format(pulsar)
+np.savetxt(outputfile, Ulim2)
+outputfile = '{0}/{0}_mjdinfer_spindown.dat' .format(pulsar)
+np.savetxt(outputfile, mjdinfer)
 
 if (args.diagnosticplots):
     plt.plot(xtraining, ytraining,'r.')
     plt.plot(mjdinfer, ypredict, 'b-')
-    print Ulim.shape , Llim.shape, xnew.shape
     plt.fill_between(xnew[:,0], Llim[:,0], Ulim[:,0], color = 'b', alpha = 0.2)
     x1,x2,y1,y2 = plt.axis()
     plt.axis((x1,x2,np.min(Llim), np.max(Ulim)))
     plt.savefig('./{0}/residuals.png'.format(pulsar))
     plt.clf()
     plt.plot(mjdinfer, nudot)
-    print Ulim2.shape , Llim2.shape, xnew.shape
     plt.fill_between(xnew[:,0], Llim2[:,0], Ulim2[:,0], color = 'b', alpha = 0.2)
     plt.savefig('./{0}/nudot.png'.format(pulsar))
-
-        
