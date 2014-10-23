@@ -6,16 +6,17 @@ import scipy.spatial as sp
 import math
 import os
 
-def makeoriginalplots(pulsar, data, mjd):
+def makeplots(pulsar, data, mjd, dir):
     nbins = data.shape[0]
     nprofiles = data.shape[1]
-    if not (os.path.exists('./{0}/original_profiles'.format(pulsar))):
-        os.mkdir('./{0}/original_profiles'.format(pulsar))
+    if not (os.path.exists('./{0}/{1}'.format(pulsar,dir))):
+        os.mkdir('./{0}/{1}'.format(pulsar,dir))
     for i in range(nprofiles):
         plt.plot(data[:,i])
         plt.suptitle('{0}'.format(mjd[i]), fontsize=14, fontweight='bold')
-        plt.savefig('./{0}/original_profiles/{1}_{2}.png' .format(pulsar,int(math.floor(mjd[i])),i))
+        plt.savefig('./{0}/{1}/{2}_{3}.png' .format(pulsar,dir,int(math.floor(mjd[i])),i))
         plt.clf()
+
 
 def aligndata(baselineremoved, brightest):
     nbins = baselineremoved.shape[0]
@@ -73,19 +74,23 @@ def removebaseline(data, outliers):
     medianrms = np.median(smallestrms)
 
     outlierindex = []
+    inlierindex = []
     for i in range(nprofiles):
-        if smallestrms[i] > outliers * medianrms:
+        if smallestrms[i] > outliers * medianrms or smallestrms[i] * outliers < medianrms or np.min(baselineremoved[:,i]) < - 5 * smallestrms[i]:
             outlierindex.append(i)
-        if smallestrms[i] * outliers < medianrms :
-            outlierindex.append(i)
-        if np.min(baselineremoved[:,i]) < - 5 * smallestrms[i]:
-            outlierindex.append(i)
+        else:
+            inlierindex.append(i)
 
     ou = np.array(outlierindex)
+    inl = np.array(inlierindex)
+    
+
+    
+    removedprofiles = np.delete(baselineremoved,inl,1)
     baselineoutlierremoved = np.delete(baselineremoved, ou, 1)
     rmsremoved = np.delete(smallestrms, ou)
     print 'Removed outliers: ', ou.shape[0]
-    return baselineoutlierremoved, rmsremoved, ou
+    return baselineoutlierremoved, removedprofiles, rmsremoved, ou, inl
 
 
 def findbrightestprofile(data,rmsdata):
@@ -146,12 +151,15 @@ def gpinferred(xtraining, ytraining, xnew, rmsnoise):
     yp, yp_var, a, b = model.predict(xnew)  # GP at xtraining points for outlier detection
     return np.array(yp.T), np.array(yp_var.T)
 
-def makemap(data, myvmin, myvmax, xaxis, yaxis, xlines, xlabel, ylabel, title, outfile):
+def makemap(data, myvmin, myvmax, xaxis, yaxis, xlines, xlinesremoved, xlabel, ylabel, title, outfile, combined = False):
     xbins = data.shape[1]
     ybins = data.shape[0]
     plt.imshow(data , aspect="auto",cmap = "RdBu_r", vmin = myvmin, vmax = myvmax)    
     for i in range(xlines.shape[0]):
         plt.vlines(xlines[i]-xaxis[0],0,ybins,linestyles='dotted')
+    for i in range(xlinesremoved.shape[0]):
+        if xlinesremoved[i]-xaxis[0] >= 0:
+            plt.vlines(xlinesremoved[i]-xaxis[0],0,ybins,linestyles='dotted', color = "r")
 
     plt.ylabel(ylabel,fontsize=16)
     plt.xlabel(xlabel,fontsize=16)
@@ -162,14 +170,15 @@ def makemap(data, myvmin, myvmax, xaxis, yaxis, xlines, xlabel, ylabel, title, o
         xticklabels.append(np.int(xaxis[i]))
     plt.xticks(xlocs,xticklabels,rotation="horizontal")
     
-    ylocs = np.arange(ybins,step = 10)
+    ylocs = np.arange(ybins,step = 50)
     yticklabels = []
     for i in ylocs:
         yticklabels.append(round(yaxis[i],3))
     plt.yticks(ylocs,yticklabels)
-    plt.colorbar(orientation="vertical")
-    plt.savefig(outfile)
-    plt.clf()
+    if combined == False:
+        plt.colorbar(orientation="vertical")
+        plt.savefig(outfile)
+        plt.clf()
 
 def DKD(X1, X2, theta):
 
