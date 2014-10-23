@@ -20,6 +20,7 @@ parser = argparse.ArgumentParser(description='Pulsar profile alignment for varia
 parser.add_argument('-f','--filename', help='File 2d data set', required=True)
 parser.add_argument('-p','--pulsar', help='Pulsar name', required=True)
 parser.add_argument('-o','--originalplots', help='make plots of raw data', action='store_true')
+parser.add_argument('-b','--badprofiles', help='make plots of removed profiles', action='store_true')
 parser.add_argument('-d','--diagnosticplots', help='make image plots', action='store_true')
 parser.add_argument('-a','--autozoom', help='number of regions to autozoom', action='store_true')
 parser.add_argument('-r','--removeoutliers', help='factor of deviation from median baseline rms to remove outliers ', type=float, required='True')
@@ -45,15 +46,23 @@ if not (os.path.exists('./{0}/'.format(pulsar))):
 
 # Make plots of originals if needed
 if (args.originalplots):
-    makeoriginalplots(pulsar,data,mjd)
+    dir='raw_profiles'
+    Vf.makeplots(pulsar,data,mjd,dir)
 
 # Remove baseline and outliers if requested
-baselineremoved, rmsperepoch, outlierlist = Vf.removebaseline(data, outlierthreshold)
+baselineremoved, removedprofiles, rmsperepoch, outlierlist, inlierlist = Vf.removebaseline(data, outlierthreshold)
 mjdout = np.delete(mjd,outlierlist)
+mjdremoved = np.delete(mjd,inlierlist)
+
 print 'Baseline and outliers removed'
 print 'Remaining array shape:', baselineremoved.shape
 brightestprofile = Vf.findbrightestprofile(baselineremoved,rmsperepoch)
 print 'Brightest profile: ', brightestprofile
+
+# Make plots of removed profiles if needed
+if (args.badprofiles):
+    dir='removed_profiles'
+    Vf.makeplots(pulsar,removedprofiles,mjdremoved,dir)
 
 
 # resample if brightest profile is less than 20 sigma peak
@@ -109,6 +118,9 @@ for i in range(regioncounter):
 outputfile = '{0}/mjd.txt' .format(pulsar)
 np.savetxt(outputfile, mjdout)
 
+outputfile = '{0}/mjdremoved.txt' .format(pulsar)
+np.savetxt(outputfile, mjdremoved)
+
 
 if (args.diagnosticplots):
     plt.imshow(data,aspect = 'auto')
@@ -116,7 +128,3 @@ if (args.diagnosticplots):
     plt.savefig('rawdata.png')
     plt.imshow(baselineremoved,aspect = 'auto')
     plt.savefig('baselined.png')
-
-
-
-        
