@@ -41,6 +41,7 @@ rawdata = np.loadtxt(filename)
 mjd = rawdata[rawdata.shape[0]-1,:]
 Tobs = rawdata[rawdata.shape[0]-2,:]
 data = rawdata[0:rawdata.shape[0]-2,:]
+bins = data.shape[0]
 
 if not (os.path.exists('./{0}/'.format(pulsar))):
     os.mkdir('./{0}/'.format(pulsar))  
@@ -64,7 +65,7 @@ print 'Brightest profile: ', brightestprofile
 brightprofpeak = np.max(baselineremoved[:,brightestprofile])
 brightprofrms = rmsperepoch[brightestprofile]
 if brightprofpeak/brightprofrms < 20 :
-    resampled = scisig.resample(baselineremoved,data.shape[0]/8)
+    resampled = scisig.resample(baselineremoved,bins/8)
     print 'resampling 8'
 else:
     resampled = baselineremoved
@@ -83,7 +84,7 @@ peaks = 1
 regioncounter = 0
 
 while peaks != 0:
-    bs, be, peaks, cuttemplate = Vf.binstartend(template, rmstemplate) 
+    bs, be, peaks, cuttemplate = Vf.binstartend(template, rmstemplate)
     binstartzoom.append(bs)
     binendzoom.append(be)
     template = cuttemplate
@@ -114,7 +115,7 @@ for i in range(regioncounter):
 # Make plots of good profiles if needed
 if (args.goodprofiles):
     dir='good_profiles'
-    Vf.makeplots(pulsar,aligned_data[binline[0]:binline[1],:],mjdout,dir,template=originaltemplate[binline[0]:binline[1]],yllim=-100,yulim=np.max(aligned_data[binline[0]:binline[1],:]))
+    Vf.makeplots(pulsar,aligned_data[binline[0]:binline[1],:],mjdout,dir,template=originaltemplate[binline[0]:binline[1]],yllim=-100,yulim=np.max(aligned_data[binline[0]:binline[1],:]),peakindex=bins/4-left[0])
 
 # Make plots of removed profiles if needed
 if (args.badprofiles):

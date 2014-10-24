@@ -19,7 +19,9 @@ args = parser.parse_args()
 print 'Read arguments'
 pulsar = args.pulsar
 interval = 1
-outfiles_ext = np.array(glob.glob('./{0}/zoomed*.txt' .format(pulsar)))
+outfiles_ext = np.sort(np.array(glob.glob('./{0}/zoomed*.txt' .format(pulsar))))
+print outfiles_ext
+sys.exit()
 outfiles = []
 datfiles = []
 for i in range(outfiles_ext.shape[0]):
@@ -32,6 +34,8 @@ mjdinfer = np.arange(mjd[0],mjd[-1],interval)
 
 for i in range(len(outfiles)):
 
+    print "OUTFILES",outfiles[i],datfiles[i]
+
     linferredarray = np.loadtxt('{0}_linferred_array.dat' .format(outfiles[i]))
     inferredarray = np.loadtxt('{0}_inferred_array.dat' .format(outfiles[i]))
     inferredvar = np.loadtxt('{0}_inferred_var.dat' .format(outfiles[i]))
@@ -41,15 +45,28 @@ for i in range(len(outfiles)):
     rightbin = readbins[1]
     allbins = readbins[2]
     bins = rightbin-leftbin
+    print leftbin,rightbin,allbins,bins
 # yaxis = np.linspace(leftbin/allbins, rightbin/allbins, bins)
-    yaxis = np.linspace(0, bins/allbins, bins)
+    if i !=0:
+        yaxis = np.linspace(0, bins/allbins, bins)
+        print "Y",yaxis
+    else:
+        yaxis = np.linspace(leftbin/allbins, rightbin/allbins, bins)
+        print "Y",yaxis
     maxdifference = np.amax(inferredarray)
     mindifference = np.amin(inferredarray)
     limitdifference = np.max((maxdifference, np.abs(mindifference)))
 
-    Vf.makemap(inferredarray, -limitdifference, limitdifference, mjdinfer, yaxis, mjd, mjdremoved, 'MJD', 'Pulse Phase', pulsar, '{0}_inferreddata.png'.format(outfiles[i]), peakline=allbins/4-leftbin)
-    Vf.makemap(linferredarray, -np.log10(limitdifference), np.log10(limitdifference), mjdinfer, yaxis, mjd, mjdremoved, 'MJD', 'Pulse Phase', pulsar, '{0}_linferreddata.png'.format(outfiles[i]), peakline=allbins/4-leftbin)
-    Vf.makemap(inferredvar, 0 , np.amax(inferredvar), mjdinfer, yaxis, mjd, mjdremoved, 'MJD', 'Pulse Phase', pulsar, '{0}_inferredvariance.png'.format(outfiles[i]), peakline=allbins/4-leftbin)
+    if i != 0:
+        Vf.makemap(inferredarray, -limitdifference, limitdifference, mjdinfer, yaxis, mjd, mjdremoved, 'MJD', 'Pulse Phase', pulsar, '{0}_inferreddata.png'.format(outfiles[i]), peakline=allbins/4-leftbin)
+        Vf.makemap(linferredarray, -np.log10(limitdifference), np.log10(limitdifference), mjdinfer, yaxis, mjd, mjdremoved, 'MJD', 'Pulse Phase', pulsar, '{0}_linferreddata.png'.format(outfiles[i]), peakline=allbins/4-leftbin)
+        Vf.makemap(inferredvar, 0 , np.amax(inferredvar), mjdinfer, yaxis, mjd, mjdremoved, 'MJD', 'Pulse Phase', pulsar, '{0}_inferredvariance.png'.format(outfiles[i]), peakline=allbins/4-leftbin)
+
+    else:
+        Vf.makemap(inferredarray, -limitdifference, limitdifference, mjdinfer, yaxis, mjd, mjdremoved, 'MJD', 'Pulse Phase', pulsar, '{0}_inferreddata.png'.format(outfiles[i]))
+        Vf.makemap(linferredarray, -np.log10(limitdifference), np.log10(limitdifference), mjdinfer, yaxis, mjd, mjdremoved, 'MJD', 'Pulse Phase', pulsar, '{0}_linferreddata.png'.format(outfiles[i]))
+        Vf.makemap(inferredvar, 0 , np.amax(inferredvar), mjdinfer, yaxis, mjd, mjdremoved, 'MJD', 'Pulse Phase', pulsar, '{0}_inferredvariance.png'.format(outfiles[i]))
+        
 
 
 if (args.combined):

@@ -29,6 +29,9 @@ filename = args.filename
 filebase = basename(filename)
 outfile = os.path.splitext(filebase)[0]
 datfile = outfile + '.dat'
+inferreddatafile = outfile + '_inferred_array.dat'
+linferreddatafile = outfile + '_linferred_array.dat'
+inferredvarfile = outfile + '_inferred_var.dat'
 pulsar = args.pulsar
 interval = args.interval
 data = np.loadtxt(filename)
@@ -110,11 +113,11 @@ for i in range(inferredarray.shape[0]):
 
 print np.amax(linferredarray), np.log10(limitdifference)
 
-outputfile = './{0}/{0}_linferred_array.dat' .format(pulsar)
+outputfile = './{0}/{1}' .format(pulsar, linferreddatafile)
 np.savetxt(outputfile, linferredarray)
-outputfile = './{0}/{0}_inferred_array.dat' .format(pulsar)
+outputfile = './{0}/{1}' .format(pulsar, inferreddatafile)
 np.savetxt(outputfile, inferredarray)
-outputfile = './{0}/{0}_inferred_var.dat' .format(pulsar)
+outputfile = './{0}/{1}' .format(pulsar, inferredvarfile)
 np.savetxt(outputfile, inferredvar)
 
 f = open('./{0}/{0}_outfile.dat' .format(pulsar), 'w')

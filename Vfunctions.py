@@ -6,7 +6,7 @@ import scipy.spatial as sp
 import math
 import os
 
-def makeplots(pulsar, data, mjd, dir, template=None, yllim=None, yulim=None):
+def makeplots(pulsar, data, mjd, dir, template=None, yllim=None, yulim=None, peakindex=None):
     nbins = data.shape[0]
     nprofiles = data.shape[1]
     if not (os.path.exists('./{0}/{1}'.format(pulsar,dir))):
@@ -17,10 +17,11 @@ def makeplots(pulsar, data, mjd, dir, template=None, yllim=None, yulim=None):
             plt.plot(template,'r')
         if yllim !=None or yulim !=None:
             plt.ylim(yllim,yulim)
+            if peakindex != None:
+                plt.vlines(peakindex,yllim,yulim,linestyles='dotted')
         plt.suptitle('{0}'.format(mjd[i]), fontsize=14, fontweight='bold')
         plt.savefig('./{0}/{1}/{2}_{3}.png' .format(pulsar,dir,int(math.floor(mjd[i])),i))
         plt.clf()
-
 
 def aligndata(baselineremoved, brightest, pulsar):
     nbins = baselineremoved.shape[0]
@@ -114,7 +115,6 @@ def binstartend(data,rms):
     lstart = 0
     lend = 0
     if peaksnr > 15:
-        print "PEAK SIGNAL TO NOISE IS",peaksnr
         peaks = 1
         thisbin = peakbin - 1
         while power > 7*rms:
@@ -122,7 +122,6 @@ def binstartend(data,rms):
                 power = data[thisbin]
                 data[thisbin] = 0
                 thisbin = thisbin - 1
-        print "BIN IS",thisbin
         lstart = thisbin
         thisbin = peakbin
         power = peaksnr
@@ -131,10 +130,9 @@ def binstartend(data,rms):
                 power = data[thisbin]
                 data[thisbin] = 0
                 thisbin = thisbin + 1
-        print "BIN IS",thisbin
         lend = thisbin
-    start = np.max((lstart - 20, 0))
-    end = np.min((lend + 20, bins - 1))
+    start = np.max((lstart - int(bins/50), 0))
+    end = np.min((lend + int(bins/50), bins - 1))
     cuttemplate = np.array(data)
     return start, end, peaks, cuttemplate
 
@@ -158,7 +156,7 @@ def gpinferred(xtraining, ytraining, xnew, rmsnoise):
     yp, yp_var, a, b = model.predict(xnew)  # GP at xtraining points for outlier detection
     return np.array(yp.T), np.array(yp_var.T)
 
-def makemap(data, myvmin, myvmax, xaxis, yaxis, xlines, xlinesremoved, xlabel, ylabel, title, outfile, combined = False):
+def makemap(data, myvmin, myvmax, xaxis, yaxis, xlines, xlinesremoved, xlabel, ylabel, title, outfile, peakline=None, combined=None):
     fig=plt.figure()
     fig.set_size_inches(16,10)
     xbins = data.shape[1]
@@ -178,13 +176,16 @@ def makemap(data, myvmin, myvmax, xaxis, yaxis, xlines, xlinesremoved, xlabel, y
     for i in xlocs:
         xticklabels.append(np.int(xaxis[i]))
     plt.xticks(xlocs,xticklabels,rotation="horizontal")
+
+    if peakline!=None:
+        plt.hlines(peakline,0,xbins)
     
-    ylocs = np.arange(ybins,step = 50)
+    ylocs = np.arange(ybins,step = 30)
     yticklabels = []
     for i in ylocs:
         yticklabels.append(round(yaxis[i],3))
     plt.yticks(ylocs,yticklabels)
-    if combined == False:
+    if combined == None:
         plt.colorbar(orientation="vertical")
         plt.savefig(outfile)
         plt.clf()
