@@ -36,6 +36,7 @@ data = np.loadtxt(filename)
 
 data = data/100
 mjd = np.loadtxt('./{0}/mjd.txt'.format(pulsar))
+mjdremoved = np.loadtxt('./{0}/mjdremoved.txt'.format(pulsar))
 readbins = np.loadtxt('./{0}/{1}'.format(pulsar,datfile))
 leftbin = readbins[0]
 rightbin = readbins[1]
@@ -83,6 +84,7 @@ for i in range(bins):
     inferredarray[i,:], inferredvar[i,:] = Vf.gpinferred(xtraining, ytraining, mjdinfer, noiserms)
     Ulim[:] = inferredarray[i,:] + 2 * np.sqrt(inferredvar[i,:])
     Llim[:] = inferredarray[i,:] - 2 * np.sqrt(inferredvar[i,:])
+    print "********** GP operating on bin",i+1,"of",bins,"for pulsar",pulsar,"**********"
 
     if (args.diagnosticplots):
         plt.plot(xtraining, difference[i,:],'r.')
@@ -114,6 +116,6 @@ np.savetxt(outputfile, linferredarray)
 
 if (args.diagnosticplots):
     yaxis = np.linspace(leftbin/allbins, rightbin/allbins, bins)
-    Vf.makemap(inferredarray, -limitdifference, limitdifference, mjdinfer, yaxis, mjd, 'MJD dates', 'pulse phase', pulsar, './{0}/{1}_inferreddata.png'.format(pulsar,outfile))
-    Vf.makemap(linferredarray, -np.log10(limitdifference), np.log10(limitdifference), mjdinfer, yaxis, mjd, 'MJD dates', 'pulse phase', pulsar, './{0}/{1}_linferreddata.png'.format(pulsar,outfile))
-    Vf.makemap(inferredvar, 0 , np.amax(inferredvar), mjdinfer, yaxis, mjd, 'MJD dates', 'pulse phase', pulsar, './{0}/{1}_inferredvariance.png'.format(pulsar,outfile))
+    Vf.makemap(inferredarray, -limitdifference, limitdifference, mjdinfer, yaxis, mjd, mjdremoved, 'MJD', 'Pulse Phase', pulsar, './{0}/{1}_inferreddata.png'.format(pulsar,outfile))
+    Vf.makemap(linferredarray, -np.log10(limitdifference), np.log10(limitdifference), mjdinfer, yaxis, mjd, mjdremoved, 'MJD', 'Pulse Phase', pulsar, './{0}/{1}_linferreddata.png'.format(pulsar,outfile))
+    Vf.makemap(inferredvar, 0 , np.amax(inferredvar), mjdinfer, yaxis, mjd, mjdremoved, 'MJD', 'Pulse Phase', pulsar, './{0}/{1}_inferredvariance.png'.format(pulsar,outfile))
