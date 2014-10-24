@@ -79,15 +79,14 @@ originaltemplate = np.copy(template)
 
 # Find pulse regions on template
 rmstemplate = np.mean(rmsperepoch) / np.sqrt(baselineremoved.shape[1])
-templatecopy = template
 peaks = 1
 regioncounter = 0
 
 while peaks != 0:
-    bs, be, peaks, cuttemplate = Vf.binstartend(templatecopy, rmstemplate) 
+    bs, be, peaks, cuttemplate = Vf.binstartend(template, rmstemplate) 
     binstartzoom.append(bs)
     binendzoom.append(be)
-    templatecopy = cuttemplate
+    template = cuttemplate
     regioncounter += 1
 # last attempt has failed, hence we are here, so:
 regioncounter -= 1
