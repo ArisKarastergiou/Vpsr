@@ -7,47 +7,49 @@ import math
 import matplotlib
 import matplotlib.pyplot as plt
 import Vfunctions as Vf
+import glob
+import os
 
 # Read command line arguments
 parser = argparse.ArgumentParser(description='Produces plots for variability studies')
 parser.add_argument('-p','--pulsar', help='Pulsar name', required=True)
 parser.add_argument('-c','--combined', help='Produces combined emission and spindown plot', action='store_true')
-# parser.add_argument('-d','--diagnosticplots', help='make image plots', action='store_true')
 args = parser.parse_args()
 
 print 'Read arguments'
 pulsar = args.pulsar
 interval = 1
-datfile = 'zoomed_J1602-5100_bins_203-320.dat'
-
-linferredarray = np.loadtxt('{0}/{0}_linferred_array.dat' .format(pulsar))
-inferredarray = np.loadtxt('{0}/{0}_inferred_array.dat' .format(pulsar))
-inferredvar = np.loadtxt('{0}/{0}_inferred_var.dat' .format(pulsar))
-f = open('{0}/{0}_outfile.dat' .format(pulsar), "r")
-outfile = f.read()
-f.close()
-# outfile = np.loadtxt('{0}/{0}_outfile.dat' .format(pulsar))
+outfiles_ext = np.array(glob.glob('./{0}/zoomed*.txt' .format(pulsar)))
+outfiles = []
+datfiles = []
+for i in range(outfiles_ext.shape[0]):
+    outfiles.append(os.path.splitext(outfiles_ext[i])[0])
+    datfiles.append(outfiles[i] + '.dat')
 
 mjd = np.loadtxt('./{0}/mjd.txt'.format(pulsar))
 mjdremoved = np.loadtxt('./{0}/mjdremoved.txt'.format(pulsar))
-readbins = np.loadtxt('./{0}/{1}'.format(pulsar,datfile))
 mjdinfer = np.arange(mjd[0],mjd[-1],interval)
 
-leftbin = readbins[0]
-rightbin = readbins[1]
-allbins = readbins[2]
-bins = rightbin-leftbin
-yaxis = np.linspace(leftbin/allbins, rightbin/allbins, bins)
-maxdifference = np.amax(inferredarray)
-mindifference = np.amin(inferredarray)
-limitdifference = np.max((maxdifference, np.abs(mindifference)))
+for i in range(len(outfiles)):
 
+    linferredarray = np.loadtxt('{0}_linferred_array.dat' .format(outfiles[i]))
+    inferredarray = np.loadtxt('{0}_inferred_array.dat' .format(outfiles[i]))
+    inferredvar = np.loadtxt('{0}_inferred_var.dat' .format(outfiles[i]))
+    readbins = np.loadtxt('{0}'.format(datfiles[i]))
 
-yaxis = np.linspace(leftbin/allbins, rightbin/allbins, bins)
-Vf.makemap(inferredarray, -limitdifference, limitdifference, mjdinfer, yaxis, mjd, mjdremoved, 'MJD', 'Pulse Phase', pulsar, './{0}/{1}_inferreddata.png'.format(pulsar,outfile))
-Vf.makemap(linferredarray, -np.log10(limitdifference), np.log10(limitdifference), mjdinfer, yaxis, mjd, mjdremoved, 'MJD', 'Pulse Phase', pulsar, './{0}/{1}_linferreddata.png'.format(pulsar,outfile))
-Vf.makemap(inferredvar, 0 , np.amax(inferredvar), mjdinfer, yaxis, mjd, mjdremoved, 'MJD', 'Pulse Phase', pulsar, './{0}/{1}_inferredvariance.png'.format(pulsar,outfile))
+    leftbin = readbins[0]
+    rightbin = readbins[1]
+    allbins = readbins[2]
+    bins = rightbin-leftbin
+# yaxis = np.linspace(leftbin/allbins, rightbin/allbins, bins)
+    yaxis = np.linspace(0, bins/allbins, bins)
+    maxdifference = np.amax(inferredarray)
+    mindifference = np.amin(inferredarray)
+    limitdifference = np.max((maxdifference, np.abs(mindifference)))
 
+    Vf.makemap(inferredarray, -limitdifference, limitdifference, mjdinfer, yaxis, mjd, mjdremoved, 'MJD', 'Pulse Phase', pulsar, '{0}_inferreddata.png'.format(outfiles[i]), peakline=allbins/4-leftbin)
+    Vf.makemap(linferredarray, -np.log10(limitdifference), np.log10(limitdifference), mjdinfer, yaxis, mjd, mjdremoved, 'MJD', 'Pulse Phase', pulsar, '{0}_linferreddata.png'.format(outfiles[i]), peakline=allbins/4-leftbin)
+    Vf.makemap(inferredvar, 0 , np.amax(inferredvar), mjdinfer, yaxis, mjd, mjdremoved, 'MJD', 'Pulse Phase', pulsar, '{0}_inferredvariance.png'.format(outfiles[i]), peakline=allbins/4-leftbin)
 
 
 if (args.combined):
