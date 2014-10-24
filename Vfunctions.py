@@ -113,22 +113,25 @@ def binstartend(data,rms):
     peaks = 0
     lstart = 0
     lend = 0
-    if peaksnr > 10:
+    if peaksnr > 15:
+        print "PEAK SIGNAL TO NOISE IS",peaksnr
         peaks = 1
         thisbin = peakbin - 1
-        while power > 0:
+        while power > 7*rms:
             if peakbin != 0 :
                 power = data[thisbin]
                 data[thisbin] = 0
                 thisbin = thisbin - 1
+        print "BIN IS",thisbin
         lstart = thisbin
         thisbin = peakbin
         power = peaksnr
-        while power > 0:
+        while power > 7*rms:
             if peakbin != bins - 1 :
                 power = data[thisbin]
                 data[thisbin] = 0
                 thisbin = thisbin + 1
+        print "BIN IS",thisbin
         lend = thisbin
     start = np.max((lstart - 20, 0))
     end = np.min((lend + 20, bins - 1))
