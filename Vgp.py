@@ -14,13 +14,13 @@ import sys
 import Vfunctions as Vf
 import os 
 from os.path import basename
+import sys
 
 # Read command line arguments
 parser = argparse.ArgumentParser(description='Pulsar profile variability studies using GPs')
 parser.add_argument('-f','--filename', help='File 2d data set', required=True)
 parser.add_argument('-p','--pulsar', help='Pulsar name', required=True)
 parser.add_argument('-i','--interval', help='inference interval', type=int, required=True)
-parser.add_argument('-d','--diagnosticplots', help='make image plots', action='store_true')
 
 args = parser.parse_args()
 
@@ -32,7 +32,6 @@ datfile = outfile + '.dat'
 pulsar = args.pulsar
 interval = args.interval
 data = np.loadtxt(filename)
-
 
 data = data/100
 mjd = np.loadtxt('./{0}/mjd.txt'.format(pulsar))
@@ -75,9 +74,9 @@ inferredarray = np.zeros((bins, profilesinfer))
 inferredvar = np.zeros((bins, profilesinfer))
 
 # Run through each bin, train a GP and infer at chosen interval
-if (args.diagnosticplots):
-    if not (os.path.exists('./{0}/bins/'.format(pulsar))):
-        os.mkdir('./{0}/bins/'.format(pulsar))  
+
+if not (os.path.exists('./{0}/bins/'.format(pulsar))):
+    os.mkdir('./{0}/bins/'.format(pulsar))  
 
 for i in range(bins):
     ytraining=difference[i,:]
@@ -86,14 +85,14 @@ for i in range(bins):
     Llim[:] = inferredarray[i,:] - 2 * np.sqrt(inferredvar[i,:])
     print "********** GP operating on bin",i+1,"of",bins,"for pulsar",pulsar,"**********"
 
-    if (args.diagnosticplots):
-        plt.plot(xtraining, difference[i,:],'r.')
-        plt.plot(mjdinfer, inferredarray[i,:], 'b-')
-        plt.fill_between(mjdinfer, Llim, Ulim, color = 'b', alpha = 0.2)
-        x1,x2,y1,y2 = plt.axis()
-        plt.axis((x1,x2,mindifference,maxdifference))
-        plt.savefig('./{0}/bins/bin{1}.png'.format(pulsar,int(i+leftbin)))
-        plt.clf()
+
+plt.plot(xtraining, difference[i,:],'r.')
+plt.plot(mjdinfer, inferredarray[i,:], 'b-')
+plt.fill_between(mjdinfer, Llim, Ulim, color = 'b', alpha = 0.2)
+x1,x2,y1,y2 = plt.axis()
+plt.axis((x1,x2,mindifference,maxdifference))
+plt.savefig('./{0}/bins/bin{1}.png'.format(pulsar,int(i+leftbin)))
+plt.clf()
         
 inferredarray = inferredarray/noiserms
 maxdifference = np.amax(inferredarray)
@@ -113,9 +112,11 @@ print np.amax(linferredarray), np.log10(limitdifference)
 
 outputfile = './{0}/{0}_linferred_array.dat' .format(pulsar)
 np.savetxt(outputfile, linferredarray)
+outputfile = './{0}/{0}_inferred_array.dat' .format(pulsar)
+np.savetxt(outputfile, inferredarray)
+outputfile = './{0}/{0}_inferred_var.dat' .format(pulsar)
+np.savetxt(outputfile, inferredvar)
 
-if (args.diagnosticplots):
-    yaxis = np.linspace(leftbin/allbins, rightbin/allbins, bins)
-    Vf.makemap(inferredarray, -limitdifference, limitdifference, mjdinfer, yaxis, mjd, mjdremoved, 'MJD', 'Pulse Phase', pulsar, './{0}/{1}_inferreddata.png'.format(pulsar,outfile))
-    Vf.makemap(linferredarray, -np.log10(limitdifference), np.log10(limitdifference), mjdinfer, yaxis, mjd, mjdremoved, 'MJD', 'Pulse Phase', pulsar, './{0}/{1}_linferreddata.png'.format(pulsar,outfile))
-    Vf.makemap(inferredvar, 0 , np.amax(inferredvar), mjdinfer, yaxis, mjd, mjdremoved, 'MJD', 'Pulse Phase', pulsar, './{0}/{1}_inferredvariance.png'.format(pulsar,outfile))
+f = open('./{0}/{0}_outfile.dat' .format(pulsar), 'w')
+f.write(outfile)
+f.close()
