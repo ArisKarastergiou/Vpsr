@@ -61,6 +61,9 @@ template = np.mean(data,1)
 difference = np.zeros((bins,profiles))
 for i in range(profiles):
     difference[:,i] = data[:,i] - template
+    plt.plot(data[:,i])
+    plt.plot(template)
+    plt.savefig('test{0}' .format(i))
     
 maxdifference = np.amax(difference)
 mindifference = np.amin(difference)
@@ -89,13 +92,13 @@ for i in range(bins):
     print "********** GP operating on bin",i+1,"of",bins,"for pulsar",pulsar,"**********"
 
 
-plt.plot(xtraining, difference[i,:],'r.')
-plt.plot(mjdinfer, inferredarray[i,:], 'b-')
-plt.fill_between(mjdinfer, Llim, Ulim, color = 'b', alpha = 0.2)
-x1,x2,y1,y2 = plt.axis()
-plt.axis((x1,x2,mindifference,maxdifference))
-plt.savefig('./{0}/bins/bin{1}.png'.format(pulsar,int(i+leftbin)))
-plt.clf()
+    plt.plot(xtraining, difference[i,:],'r.')
+    plt.plot(mjdinfer, inferredarray[i,:], 'b-')
+    plt.fill_between(mjdinfer, Llim, Ulim, color = 'b', alpha = 0.2)
+    x1,x2,y1,y2 = plt.axis()
+    plt.axis((x1,x2,mindifference,maxdifference))
+    plt.savefig('./{0}/bins/bin{1}.png'.format(pulsar,int(i+leftbin)))
+    plt.clf()
         
 inferredarray = inferredarray/noiserms
 maxdifference = np.amax(inferredarray)
