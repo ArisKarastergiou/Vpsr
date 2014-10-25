@@ -76,6 +76,13 @@ baselineremoved = resampled
 
 aligned_data, template = Vf.aligndata(baselineremoved, brightestprofile, pulsar)
 
+for k in range(10):
+
+    plt.plot(aligned_data[200:300,k],'b')
+    plt.plot(template[200:300],'r')
+    plt.savefig('ztest{0}' .format(k))
+    plt.clf()
+
 originaltemplate = np.copy(template)
 
 # Find pulse regions on template
@@ -112,15 +119,28 @@ for i in range(regioncounter):
     outputfile = '{0}/zoomed_{0}_bins_{1}-{2}.dat' .format(pulsar,left[i],right[i])
     np.savetxt(outputfile, binline)
 
-# Make plots of good profiles if needed
 if (args.goodprofiles):
     dir='good_profiles'
-    Vf.makeplots(pulsar,aligned_data[binline[0]:binline[1],:],mjdout,dir,template=originaltemplate[binline[0]:binline[1]],yllim=-100,yulim=np.max(aligned_data[binline[0]:binline[1],:]),peakindex=bins/4-left[0])
+
+    if regioncounter > 1:
+        # Make interpulse plots of good profiles if needed
+        Vf.goodplots_ip(pulsar,aligned_data[left[0]:right[0],:], aligned_data[left[1]:right[1],:],mjdout,dir,originaltemplate[left[0]:right[0]], originaltemplate[left[1]:right[1]],-100,np.max(aligned_data[left[0]:right[0],:]),peakindex=bins/4-left[0])
+
+    else:
+        # Make plots of good profiles if needed
+        Vf.makeplots(pulsar,aligned_data[left[0]:right[0],:],mjdout,dir,template=originaltemplate[left[0]:right[0]],yllim=-100,yulim=np.max(aligned_data[left[0]:right[0],:]),peakindex=bins/4-left[0])
+
+# for k in range(10):
+
+#     plt.plot(aligned_data[200:300,k],'b')
+#     plt.plot(originaltemplate[200:300],'r')
+#     plt.savefig('test{0}' .format(k))
+#     plt.clf()
 
 # Make plots of removed profiles if needed
 if (args.badprofiles):
     dir='removed_profiles'
-    Vf.makeplots(pulsar,removedprofiles,mjdremoved,dir,template=originaltemplate,yllim=-100,yulim=np.max(aligned_data[binline[0]:binline[1],:]))
+    Vf.makeplots(pulsar,removedprofiles,mjdremoved,dir,template=originaltemplate,yllim=-100,yulim=np.max(aligned_data[left[0]:right[0],:]))
 
 outputfile = '{0}/mjd.txt' .format(pulsar)
 np.savetxt(outputfile, mjdout)
