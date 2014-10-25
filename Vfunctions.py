@@ -7,7 +7,7 @@ import math
 import os
 
 def makeplots(pulsar, data, mjd, dir, template=None, yllim=None, yulim=None, peakindex=None):
-    nbins = data.shape[0]
+    # nbins = data.shape[0]
     nprofiles = data.shape[1]
     if not (os.path.exists('./{0}/{1}'.format(pulsar,dir))):
         os.mkdir('./{0}/{1}'.format(pulsar,dir))
@@ -22,6 +22,30 @@ def makeplots(pulsar, data, mjd, dir, template=None, yllim=None, yulim=None, pea
         plt.suptitle('{0}'.format(mjd[i]), fontsize=14, fontweight='bold')
         plt.savefig('./{0}/{1}/{2}_{3}.png' .format(pulsar,dir,int(math.floor(mjd[i])),i))
         plt.clf()
+
+def goodplots_ip(pulsar, data_mp, data_ip, mjd, dir, template_mp, template_ip, yllim, yulim, peakindex):
+    if not (os.path.exists('./{0}/{1}'.format(pulsar,dir))):
+        os.mkdir('./{0}/{1}'.format(pulsar,dir))
+    nprofiles = data_mp.shape[1]
+
+    for i in range(nprofiles):
+        fig=plt.figure()
+        ax_mp=fig.add_subplot(1,2,1)
+        plt.plot(data_mp[:,i])
+        plt.plot(template_mp,'r')
+        plt.ylim(yllim,yulim)
+        plt.vlines(peakindex,yllim,yulim,linestyles='dotted')
+
+        ax_ip=fig.add_subplot(1,2,2)
+        plt.plot(data_ip[:,i])
+        plt.plot(template_ip,'r')
+        plt.ylim(yllim,yulim)
+
+        plt.suptitle('{0}'.format(mjd[i]), fontsize=14, fontweight='bold')
+        plt.savefig('./{0}/{1}/{2}_{3}.png' .format(pulsar,dir,int(math.floor(mjd[i])),i))
+        plt.clf()
+
+        plt.close(fig)
 
 def aligndata(baselineremoved, brightest, pulsar):
     nbins = baselineremoved.shape[0]
@@ -52,7 +76,7 @@ def aligndata(baselineremoved, brightest, pulsar):
         xcorr = np.correlate(template,double,"full")
         lag = np.argmax(xcorr) + fixedlag
         aligned[:,i] = np.roll(baselineremoved[:,i],lag)
-    newtemplate = np.roll(template, fixedlag)
+    newtemplate = np.roll(template, fixedlag-1)
     return np.array(aligned), np.array(newtemplate)
 
 def removebaseline(data, outliers):
