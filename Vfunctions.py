@@ -64,7 +64,7 @@ def aligndata(baselineremoved, brightest, pulsar):
         xcorr = np.correlate(template,baselineremoved[:,i],"full")
         lag = np.argmax(xcorr)
         aligned[:,i] = np.roll(baselineremoved[:,i],lag)
-    template = np.mean(aligned,1)
+    template = np.median(aligned,1)
     # repeat with better template now and shift peak to 1/4 of the profile
     peakbin = np.argmax(template)
     fixedlag = int(nbins/4)-peakbin
@@ -76,7 +76,8 @@ def aligndata(baselineremoved, brightest, pulsar):
         xcorr = np.correlate(template,double,"full")
         lag = np.argmax(xcorr) + fixedlag
         aligned[:,i] = np.roll(baselineremoved[:,i],lag)
-    newtemplate = np.roll(template, fixedlag-1)
+    newtemplate = np.median(aligned,1)
+#    newtemplate = np.roll(template, fixedlag)
     return np.array(aligned), np.array(newtemplate)
 
 def removebaseline(data, outliers):
