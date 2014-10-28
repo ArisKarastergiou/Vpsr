@@ -76,8 +76,7 @@ def aligndata(baselineremoved, brightest, pulsar):
         xcorr = np.correlate(template,double,"full")
         lag = np.argmax(xcorr) + fixedlag
         aligned[:,i] = np.roll(baselineremoved[:,i],lag)
-    newtemplate = np.median(aligned,1)
-#    newtemplate = np.roll(template, fixedlag)
+        newtemplate = np.median(aligned,1)
     return np.array(aligned), np.array(newtemplate)
 
 def removebaseline(data, outliers):
