@@ -76,13 +76,6 @@ baselineremoved = resampled
 
 aligned_data, template = Vf.aligndata(baselineremoved, brightestprofile, pulsar)
 
-for k in range(10):
-
-    plt.plot(aligned_data[200:300,k],'b')
-    plt.plot(template[200:300],'r')
-    plt.savefig('ztest{0}' .format(k))
-    plt.clf()
-
 originaltemplate = np.copy(template)
 
 # Find pulse regions on template
@@ -130,13 +123,6 @@ if (args.goodprofiles):
     else:
         # Make plots of good profiles if needed
         Vf.makeplots(pulsar,aligned_data[left[0]:right[0],:],mjdout,dir,template=originaltemplate[left[0]:right[0]],yllim=-100,yulim=np.max(aligned_data[left[0]:right[0],:]),peakindex=bins/4-left[0])
-
-# for k in range(10):
-
-#     plt.plot(aligned_data[200:300,k],'b')
-#     plt.plot(originaltemplate[200:300],'r')
-#     plt.savefig('test{0}' .format(k))
-#     plt.clf()
 
 # Make plots of removed profiles if needed
 if (args.badprofiles):
