@@ -89,9 +89,10 @@ originaltemplate = np.copy(template)
 rmstemplate = np.mean(rmsperepoch) / np.sqrt(baselineremoved.shape[1])
 peaks = 1
 regioncounter = 0
+peakoriginal = np.max(originaltemplate)
 
 while peaks != 0:
-    bs, be, peaks, cuttemplate = Vf.binstartend(template, rmstemplate)
+    bs, be, peaks, cuttemplate = Vf.binstartend(template, peakoriginal, rmstemplate)
     binstartzoom.append(bs)
     binendzoom.append(be)
     template = cuttemplate

@@ -129,10 +129,12 @@ def findbrightestprofile(data,rmsdata):
     brightestindex = np.argmax(snr)
     return brightestindex
 
-def binstartend(data,rms):
+def binstartend(data,peakoriginal,rms):
     peak = np.max(data)
     peakbin = np.argmax(data)
     bins = data.shape[0]
+    window = bins/20
+    print peak, peakbin, rms
     peaksnr = peak/rms
     power = peaksnr
     peaks = 0
@@ -141,23 +143,27 @@ def binstartend(data,rms):
     if peaksnr > 15:
         peaks = 1
         thisbin = peakbin - 1
-        while power > 7*rms:
+        while power > 0.02*peakoriginal:
             if peakbin != 0 :
                 power = data[thisbin]
                 data[thisbin] = 0
-                thisbin = thisbin - 1
+                thisbin = np.max((thisbin - window,0))
         lstart = thisbin
         thisbin = peakbin
         power = peaksnr
-        while power > 7*rms:
+        while power > 0.02*peakoriginal:
             if peakbin != bins - 1 :
                 power = data[thisbin]
                 data[thisbin] = 0
-                thisbin = thisbin + 1
+                thisbin = np.min((thisbin + window,bins-1))
         lend = thisbin
-    start = np.max((lstart - int(bins/50), 0))
-    end = np.min((lend + int(bins/50), bins - 1))
+#    start = np.max((lstart - int(bins/50), 0))
+#    end = np.min((lend + int(bins/50), bins - 1))
+    start = lstart
+    end = lend
+    data[start:end] = 0
     cuttemplate = np.array(data)
+    print start, end
     return start, end, peaks, cuttemplate
 
 
