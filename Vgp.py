@@ -46,6 +46,11 @@ allbins = readbins[2]
 
 bins = data.shape[0]
 profiles = data.shape[1]
+
+print "Vgp: Pulsar", pulsar
+print "-----"
+print "-----"
+
 print bins,profiles, np.std(data[0:20,:]), np.std(data[bins-21:-1,:])
 # find properties of noise, assuming data have been prepared using Valign
 noiserms = np.mean((np.std(data[0:20,:]), np.std(data[bins-21:-1,:])))
@@ -61,9 +66,6 @@ template = np.mean(data,1)
 difference = np.zeros((bins,profiles))
 for i in range(profiles):
     difference[:,i] = data[:,i] - template
-    plt.plot(data[:,i])
-    plt.plot(template)
-    plt.savefig('test{0}' .format(i))
     
 maxdifference = np.amax(difference)
 mindifference = np.amin(difference)

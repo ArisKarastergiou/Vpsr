@@ -84,7 +84,7 @@ peaks = 1
 regioncounter = 0
 peakoriginal = np.max(originaltemplate)
 
-while peaks != 0:
+while peaks != 0 and regioncounter < 5:
     bs, be, peaks, cuttemplate = Vf.binstartend(template, peakoriginal, rmstemplate)
     binstartzoom.append(bs)
     binendzoom.append(be)

@@ -6,6 +6,15 @@ import scipy.spatial as sp
 import math
 import os
 
+def SE(X1, X2, amp, length, white_noise = False):
+        '''
+        Squared exponential covariance function
+        '''
+        X1, X2 = np.matrix(X1), np.matrix(X2) # ensure both sets of inputs are matrices
+        D2 = sp.distance.cdist(X1, X2, 'sqeuclidean') # calculate squared Euclidean distance
+        K = amp**2 * np.exp(- D2 / (2*(length**2))) # calculate covariance matrix
+        return np.matrix(K)
+
 def makeplots(pulsar, data, mjd, dir, template=None, yllim=None, yulim=None, peakindex=None):
     # nbins = data.shape[0]
     nprofiles = data.shape[1]
@@ -181,12 +190,12 @@ def gpinferred(xtraining, ytraining, xnew, rmsnoise):
 #    model.constrain_bounded('rbf_lengthscale', 100, 300)
     model.constrain_bounded('Mat32_lengthscale', 15, 300)
     model.optimize()
-    model.optimize_restarts(num_restarts = 10)
+    model.optimize_restarts(num_restarts = 5)
     print model
     yp, yp_var, a, b = model.predict(xnew)  # GP at xtraining points for outlier detection
     return np.array(yp.T), np.array(yp_var.T)
 
-def makemap(data, myvmin, myvmax, xaxis, yaxis, xlines, xlinesremoved, xlabel, ylabel, title, outfile, peakline=None, combined=None):
+def makemap(data, myvmin, myvmax, xaxis, yaxis, xlines, xlabel, ylabel, title, outfile, peakline=None, combined=None):
     fig=plt.figure()
     fig.set_size_inches(16,10)
     xbins = data.shape[1]
@@ -194,9 +203,10 @@ def makemap(data, myvmin, myvmax, xaxis, yaxis, xlines, xlinesremoved, xlabel, y
     plt.imshow(data , aspect="auto",cmap = "RdBu_r", vmin = myvmin, vmax = myvmax)    
     for i in range(xlines.shape[0]):
         plt.vlines(xlines[i]-xaxis[0],0,ybins,linestyles='dotted')
-    for i in range(xlinesremoved.shape[0]):
-        if xlinesremoved[i]-xaxis[0] >= 0:
-            plt.vlines(xlinesremoved[i]-xaxis[0],0,ybins,linestyles='dotted', color = "r")
+#    if xlinesremoved.shape[0]!=0:
+#       for i in range(xlinesremoved.shape[0]):
+#            if xlinesremoved[i]-xaxis[0] >= 0:
+#                plt.vlines(xlinesremoved[i]-xaxis[0],0,ybins,linestyles='dotted', color = "r")
 
     plt.ylabel(ylabel,fontsize=16)
     plt.xlabel(xlabel,fontsize=16)
@@ -230,6 +240,6 @@ def DKD(X1, X2, theta):
         for j in range(X2.shape[0]):
             D1[i,j] = X1[i] - X2[j]
 # This is my second derivative of the SE kernel after the two differentiation calcs
-    K = (theta[0]/(theta[1]**2)) * np.exp(- D2 / (2*(theta[1]**2))) * (1 - D2/(theta[1]**2)) 
+    K = (theta[0]**2/(theta[1]**2)) * np.exp(- D2 / (2*(theta[1]**2))) * (1 - D2/(theta[1]**2)) 
 
     return np.matrix(K)
