@@ -69,7 +69,7 @@ if (args.combined):
     Llim2 = np.loadtxt('{0}/{0}_Llim2.dat' .format(pulsar))
     Ulim2 = np.loadtxt('{0}/{0}_Ulim2.dat' .format(pulsar))
     mjdinfer_spindown = np.loadtxt('./{0}/{0}_mjdinfer_spindown.dat'.format(pulsar))
-    power = int((-1)*np.floor(math.log10((-1)*np.mean(nudot)))) 
+    power = int((-1)*np.floor(math.log10(abs(np.mean(nudot))))) 
     nudot = nudot*10**power
     Llim2 = Llim2*10**power
     Ulim2 = Ulim2*10**power
