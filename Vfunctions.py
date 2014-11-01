@@ -240,6 +240,7 @@ def DKD(X1, X2, theta):
         for j in range(X2.shape[0]):
             D1[i,j] = X1[i] - X2[j]
 # This is my second derivative of the SE kernel after the two differentiation calcs
-    K = (theta[0]**2/(theta[1]**2)) * np.exp(- D2 / (2*(theta[1]**2))) * (1 - D2/(theta[1]**2)) 
+    K = (theta[0]/(theta[1]**2)) * np.exp(- D2 / (2*(theta[1]**2))) * (1 - D2/(theta[1]**2)) 
 
     return np.matrix(K)
+
