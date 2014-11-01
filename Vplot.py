@@ -79,7 +79,7 @@ if (args.combined):
     ax=fig.add_subplot(2,1,1)
     ax.xaxis.set_visible(False)
 
-    Vf.makemap(linferredarray, -np.log10(limitdifference), np.log10(loglimitdifference), mjdinfer, yaxis, mjd, mjdremoved, 'MJD', 'Pulse phase', pulsar, '.not_saved.png', combined=True)
+    Vf.makemap(linferredarray, limitdifference, limitdifference, mjdinfer, yaxis, mjd, 'MJD', 'Pulse phase', pulsar, '.not_saved.png', combined=True)
 
     ax=fig.add_subplot(2,1,2)
 
