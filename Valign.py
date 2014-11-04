@@ -118,11 +118,11 @@ if (args.goodprofiles):
 
     if regioncounter > 1:
         # Make interpulse plots of good profiles if needed
-        Vf.goodplots_ip(pulsar,aligned_data[left[0]:right[0],:], aligned_data[left[1]:right[1],:],mjdout,dir,originaltemplate[left[0]:right[0]], originaltemplate[left[1]:right[1]],-100,np.max(aligned_data[left[0]:right[0],:]),peakindex=bins/4-left[0])
+        Vf.goodplots_ip(pulsar,aligned_data[left[0]:right[0],:], aligned_data[left[1]:right[1],:],mjdout,dir,originaltemplate[left[0]:right[0]], originaltemplate[left[1]:right[1]],-np.std(aligned_data[left[0]:right[0],:]),np.max(aligned_data[left[0]:right[0],:]),peakindex=bins/4-left[0])
 
     else:
         # Make plots of good profiles if needed
-        Vf.makeplots(pulsar,aligned_data[left[0]:right[0],:],mjdout,dir,template=originaltemplate[left[0]:right[0]],yllim=-100,yulim=np.max(aligned_data[left[0]:right[0],:]),peakindex=bins/4-left[0])
+        Vf.makeplots(pulsar,aligned_data[left[0]:right[0],:],mjdout,dir,template=originaltemplate[left[0]:right[0]],yllim=-np.std(aligned_data[left[0]:right[0],:]),yulim=np.max(aligned_data[left[0]:right[0],:]),peakindex=bins/4-left[0])
 
 # Make plots of removed profiles if needed
 if (args.badprofiles):
