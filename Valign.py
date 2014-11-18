@@ -27,10 +27,10 @@ parser.add_argument('-a','--autozoom', help='number of regions to autozoom', act
 parser.add_argument('-r','--removeoutliers', help='factor of deviation from median baseline rms to remove outliers ', type=float, required='True')
 
 args = parser.parse_args()
-
-print 'Read arguments'
+print 'Read arguments',
 filename = args.filename
 pulsar = args.pulsar
+print 'PSR',pulsar
 outlierthreshold = args.removeoutliers
 binstartzoom = []
 binendzoom = []
@@ -49,7 +49,7 @@ if not (os.path.exists('./{0}/'.format(pulsar))):
 # Make plots of originals if needed
 if (args.originalplots):
     dir='raw_profiles'
-    Vf.makeplots(pulsar,data,mjd,dir)
+    Vf.makeplots(pulsar,data,mjd,dir,bins)
 
 # Remove baseline and outliers if requested
 baselineremoved, removedprofiles, rmsperepoch, outlierlist, inlierlist = Vf.removebaseline(data, outlierthreshold)
@@ -118,16 +118,16 @@ if (args.goodprofiles):
 
     if regioncounter > 1:
         # Make interpulse plots of good profiles if needed
-        Vf.goodplots_ip(pulsar,aligned_data[left[0]:right[0],:], aligned_data[left[1]:right[1],:],mjdout,dir,originaltemplate[left[0]:right[0]], originaltemplate[left[1]:right[1]],-np.std(aligned_data[left[0]:right[0],:]),np.max(aligned_data[left[0]:right[0],:]),peakindex=bins/4-left[0])
+        Vf.goodplots_ip(pulsar,aligned_data[left[0]:right[0],:], aligned_data[left[1]:right[1],:],mjdout,dir,bins,left[1],originaltemplate[left[0]:right[0]], originaltemplate[left[1]:right[1]],-0.5*np.std(aligned_data[left[0]:right[0],:]),np.max(aligned_data[left[0]:right[0],:]),peakindex=bins/4-left[0])
 
     else:
         # Make plots of good profiles if needed
-        Vf.makeplots(pulsar,aligned_data[left[0]:right[0],:],mjdout,dir,template=originaltemplate[left[0]:right[0]],yllim=-np.std(aligned_data[left[0]:right[0],:]),yulim=np.max(aligned_data[left[0]:right[0],:]),peakindex=bins/4-left[0])
+        Vf.makeplots(pulsar,aligned_data[left[0]:right[0],:],mjdout,dir,bins,template=originaltemplate[left[0]:right[0]],yllim=-0.1*np.max(originaltemplate),yulim=np.max(aligned_data[left[0]:right[0],:]),peakindex=bins/4-left[0])
 
 # Make plots of removed profiles if needed
 if (args.badprofiles):
     dir='removed_profiles'
-    Vf.makeplots(pulsar,removedprofiles,mjdremoved,dir,template=originaltemplate,yllim=-100,yulim=np.max(aligned_data[left[0]:right[0],:]))
+    Vf.makeplots(pulsar,removedprofiles,mjdremoved,dir,bins,template=originaltemplate,yllim=-0.1*np.max(originaltemplate),yulim=np.max(aligned_data[left[0]:right[0],:]))
 
 outputfile = '{0}/mjd.txt' .format(pulsar)
 np.savetxt(outputfile, mjdout)
