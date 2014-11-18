@@ -15,40 +15,67 @@ def SE(X1, X2, amp, length, white_noise = False):
         K = amp**2 * np.exp(- D2 / (2*(length**2))) # calculate covariance matrix
         return np.matrix(K)
 
-def makeplots(pulsar, data, mjd, dir, template=None, yllim=None, yulim=None, peakindex=None):
-    # nbins = data.shape[0]
+def makeplots(pulsar, data, mjd, dir, allbins, template=None, yllim=None, yulim=None, peakindex=None):
+    nbins = data.shape[0]
     nprofiles = data.shape[1]
+    xaxis = np.linspace(0,float(nbins)/allbins,nbins)
+    xlocs = np.linspace(0,nbins-1,10)
+    xticklabels = []
+    for i in xlocs:
+	    xticklabels.append(np.round(xaxis[int(i)],3))
     if not (os.path.exists('./{0}/{1}'.format(pulsar,dir))):
         os.mkdir('./{0}/{1}'.format(pulsar,dir))
     for i in range(nprofiles):
         plt.plot(data[:,i])
         if template!=None:
             plt.plot(template,'r')
+	    plt.vlines(np.argmax(template),yllim,yulim,linestyles='dotted')
         if yllim !=None or yulim !=None:
             plt.ylim(yllim,yulim)
-            if peakindex != None:
-                plt.vlines(peakindex,yllim,yulim,linestyles='dotted')
-        plt.suptitle('{0}'.format(mjd[i]), fontsize=14, fontweight='bold')
+        plt.ylabel(r'Intensity (mJy)',fontsize=14)
+	plt.xlabel(r'Fraction of Pulse Period',fontsize=14)
+	plt.xticks(xlocs,xticklabels)
+	plt.suptitle('{0}'.format(mjd[i]), fontsize=14, fontweight='bold')
         plt.savefig('./{0}/{1}/{2}_{3}.png' .format(pulsar,dir,int(math.floor(mjd[i])),i))
         plt.clf()
 
-def goodplots_ip(pulsar, data_mp, data_ip, mjd, dir, template_mp, template_ip, yllim, yulim, peakindex):
+def goodplots_ip(pulsar, data_mp, data_ip, mjd, dir, allbins, startbin, template_mp, template_ip, yllim, yulim, peakindex):
     if not (os.path.exists('./{0}/{1}'.format(pulsar,dir))):
         os.mkdir('./{0}/{1}'.format(pulsar,dir))
     nprofiles = data_mp.shape[1]
+
+    nbins_mp = data_mp.shape[0]
+    xaxis_mp = np.linspace(0,float(nbins_mp)/allbins,nbins_mp)
+    xlocs_mp = np.linspace(0,nbins_mp-1,5)
+    xticklabels_mp = []
+    for i in xlocs_mp:
+	    xticklabels_mp.append(np.round(xaxis_mp[int(i)],3))
+
+    nbins_ip = data_ip.shape[0]
+    xaxis_ip = np.linspace(float(startbin)/allbins,float(nbins_ip+startbin)/allbins,nbins_ip)
+    xlocs_ip = np.linspace(0,nbins_ip-1,5)
+    xticklabels_ip = []
+    for i in xlocs_ip:
+	    xticklabels_ip.append(np.round(xaxis_ip[int(i)],3))
+
 
     for i in range(nprofiles):
         fig=plt.figure()
         ax_mp=fig.add_subplot(1,2,1)
         plt.plot(data_mp[:,i])
         plt.plot(template_mp,'r')
+	plt.xticks(xlocs_mp,xticklabels_mp)
         plt.ylim(yllim,yulim)
-        plt.vlines(peakindex,yllim,yulim,linestyles='dotted')
+        plt.vlines(np.argmax(template_mp),yllim,yulim,linestyles='dotted')
+	plt.xlabel(r'Fraction of Pulse Period',fontsize=14)
+        plt.ylabel(r'Intensity (mJy)',fontsize=14)
 
         ax_ip=fig.add_subplot(1,2,2)
         plt.plot(data_ip[:,i])
         plt.plot(template_ip,'r')
+	plt.xticks(xlocs_ip,xticklabels_ip)
         plt.ylim(yllim,yulim)
+	plt.xlabel(r'Fraction of Pulse Period',fontsize=14)
 
         plt.suptitle('{0}'.format(mjd[i]), fontsize=14, fontweight='bold')
         plt.savefig('./{0}/{1}/{2}_{3}.png' .format(pulsar,dir,int(math.floor(mjd[i])),i))
@@ -172,7 +199,7 @@ def binstartend(data,peakoriginal,rms):
     end = lend
     data[start:end] = 0
     cuttemplate = np.array(data)
-    print start, end
+#    print "start and end",start+70, end+50
     return start, end, peaks, cuttemplate
 
 
@@ -196,8 +223,9 @@ def gpinferred(xtraining, ytraining, xnew, rmsnoise):
     return np.array(yp.T), np.array(yp_var.T)
 
 def makemap(data, myvmin, myvmax, xaxis, yaxis, xlines, xlabel, ylabel, title, outfile, peakline=None, combined=None):
-    fig=plt.figure()
-    fig.set_size_inches(16,10)
+    if combined == None:
+	fig=plt.figure()
+        fig.set_size_inches(16,10)
     xbins = data.shape[1]
     ybins = data.shape[0]
     plt.imshow(data , aspect="auto",cmap = "RdBu_r", vmin = myvmin, vmax = myvmax)    
