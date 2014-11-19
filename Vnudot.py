@@ -136,6 +136,7 @@ np.savetxt(outputfile, Ulim2)
 outputfile = '{0}/{0}_mjdinfer_spindown.dat' .format(pulsar)
 np.savetxt(outputfile, mjdinfer)
 
+# Produce a plot showing difference between model and data
 resid_resid = []
 for i in range(xtraining.shape[0]):
     idx = np.argmin(np.abs(mjdinfer - xtraining[i]))
