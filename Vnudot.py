@@ -69,7 +69,7 @@ mjdinfer = np.arange(int(mjdfirst), int(mjdlast), 1)
 
 kernel1 = GPy.kern.rbf(1)
 kernel2 = GPy.kern.rbf(1)
-kernel = kernel1 + kernel2
+kernel = kernel1+kernel2
 
 
 xtraining1 = xtraining.reshape(xtraining.shape[0],1)
@@ -78,10 +78,10 @@ xnew = mjdinfer.reshape(mjdinfer.shape[0],1)
 model = GPy.models.GPRegression(xtraining1,ytraining1,kernel, normalize_X=False)
 model.constrain_bounded('rbf_1_lengthscale', rbf1s, rbf1e)
 model.constrain_bounded('rbf_2_lengthscale', rbf2s, rbf2e)
-model.constrain_bounded('noise_variance',0, 0.1*TOAerror)
+#model.constrain_bounded('noise_variance',0, TOAerror)
 model.optimize()
 model.optimize_restarts(num_restarts = 10)
-print model
+print "MODEL FOR PULSAR",pulsar, model
 ypredict, yvariance, a, b = model.predict(xnew)
 
 Ulim = ypredict + 2*np.sqrt(yvariance)
@@ -113,7 +113,7 @@ K_prime_p += 3*par[0]/par[1]**4 # These are the diagonal elements of the varianc
 KiKx, _ = GPy.util.linalg.dpotrs(K1inv, np.asfortranarray(K_prime.T), lower = 1)
 #-------
 #mu = np.dot(KiKx.T, self.likelihood.Y)
-nudot = np.dot(KiKx.T, Y_TRAINING)/period/86400**2
+nudot = nudot0  + np.dot(KiKx.T, Y_TRAINING)/period/86400**2
 #-------
 
 #Kxx = self.kern.Kdiag(_Xnew, which_parts=which_parts)
@@ -136,11 +136,27 @@ np.savetxt(outputfile, Ulim2)
 outputfile = '{0}/{0}_mjdinfer_spindown.dat' .format(pulsar)
 np.savetxt(outputfile, mjdinfer)
 
+resid_resid = []
+for i in range(xtraining.shape[0]):
+    idx = np.argmin(np.abs(mjdinfer - xtraining[i]))
+    resid_resid.append(ytraining[i]-ypredict[idx])
+
 # Make plots
 if (args.diagnosticplots):
+    fig=plt.figure()
+    fig.set_size_inches(16,10)
+    ax=fig.add_subplot(2,1,1)
     plt.plot(xtraining, ytraining,'r.')
     plt.plot(mjdinfer, ypredict, 'b-')
     plt.fill_between(xnew[:,0], Llim[:,0], Ulim[:,0], color = 'b', alpha = 0.2)
+    plt.xlabel('Modified Julian Days')
+    plt.ylabel('Timing Residuals (Sec)')
+    ax.xaxis.set_visible(False)
+    ax=fig.add_subplot(2,1,2)
+    plt.plot(xtraining, resid_resid,'k.')
+    ax.grid()
+    plt.xlabel('Modified Julian Days')
+    plt.ylabel('Data - Model (Sec)')
     #x1,x2,y1,y2 = plt.axis()
     #plt.axis((x1,x2,np.min(Llim), np.max(Ulim)))
     plt.savefig('./{0}/residuals.png'.format(pulsar))
@@ -149,5 +165,6 @@ if (args.diagnosticplots):
     plt.fill_between(xnew[:,0], Llim2[:,0], Ulim2[:,0], color = 'b', alpha = 0.2)
     x1,x2,y1,y2 = plt.axis()
     plt.axis((x1,x2,np.min(Llim2[10:-10]), np.max(Ulim2[10:-10])))
+    plt.subplots_adjust(hspace=0)
     plt.savefig('./{0}/nudot.png'.format(pulsar))
     plt.clf()
