@@ -1,6 +1,7 @@
 # Functions for V code
 import numpy as np
 import GPy
+import matplotlib
 import matplotlib.pyplot as plt
 import scipy.spatial as sp
 import math
@@ -272,3 +273,109 @@ def DKD(X1, X2, theta):
 
     return np.matrix(K)
 
+def combined_map(data_norm,data_not, myvmin_norm, myvmax_norm, myvmin_not,myvmax_not, xaxis, yaxis, xlines_norm, xlines_not, nudot, spinllim, spinulim, mjdinferspindown, xlabel, ylabel,pulsar, peakline=None):
+
+    fig=plt.figure()
+    fig.set_size_inches(16,10)
+    ax=fig.add_subplot(3,1,1)
+    ax.xaxis.set_visible(False)
+
+    xbins = data_not.shape[1]
+    ybins = data_not.shape[0]
+    plt.imshow(data_not , aspect="auto",cmap = "RdBu_r", vmin = myvmin_not, vmax = myvmax_not)    
+
+    for i in range(xlines_norm.shape[0]):
+	    plt.vlines(xlines_norm[i]-xaxis[0],0,ybins,linestyles='dotted')
+
+#    if xlinesremoved.shape[0]!=0:
+#       for i in range(xlinesremoved.shape[0]):
+#            if xlinesremoved[i]-xaxis[0] >= 0:
+#                plt.vlines(xlinesremoved[i]-xaxis[0],0,ybins,linestyles='dotted', color = "r")
+
+    plt.ylabel(ylabel,fontsize=16)
+    plt.xlabel(xlabel,fontsize=16)
+#    plt.suptitle(title,fontsize=16)
+    xlocs = np.arange(xbins,step = 500)
+    xticklabels = []
+    for i in xlocs:
+        xticklabels.append(np.int(xaxis[i]))
+    plt.xticks(xlocs,xticklabels,rotation="horizontal")
+
+    if peakline!=None:
+        plt.hlines(peakline,0,xbins)
+    
+    ylocs = np.arange(ybins,step = 30)
+    yticklabels = []
+    for i in ylocs:
+        yticklabels.append(round(yaxis[i],3))
+    plt.yticks(ylocs,yticklabels)
+
+
+    cbaxes1 = fig.add_axes([0.65, 0.645, 0.25, 0.01])
+    cb1 = plt.colorbar(cax = cbaxes1,orientation="horizontal")
+    cb1.update_ticks()
+
+    ax=fig.add_subplot(3,1,2)
+    ax.xaxis.set_visible(False)
+
+    xbins = data_norm.shape[1]
+    ybins = data_norm.shape[0]
+    plt.imshow(data_norm , aspect="auto",cmap = "RdBu_r", vmin = myvmin_norm, vmax = myvmax_norm, zorder = -500)    
+    
+    for i in range(xlines_norm.shape[0]):
+	    plt.vlines(xlines_norm[i]-xaxis[0],0,ybins,linestyles='dotted')
+#    if xlinesremoved.shape[0]!=0:
+#       for i in range(xlinesremoved.shape[0]):
+#            if xlinesremoved[i]-xaxis[0] >= 0:
+#                plt.vlines(xlinesremoved[i]-xaxis[0],0,ybins,linestyles='dotted', color = "r")
+
+    plt.ylabel(ylabel,fontsize=16)
+    plt.xlabel(xlabel,fontsize=16)
+ #   plt.suptitle(title,fontsize=16)
+    xlocs = np.arange(xbins,step = 500)
+    xticklabels = []
+    for i in xlocs:
+        xticklabels.append(np.int(xaxis[i]))
+    plt.xticks(xlocs,xticklabels,rotation="horizontal")
+
+    if peakline!=None:
+        plt.hlines(peakline,0,xbins)
+    
+    ylocs = np.arange(ybins,step = 30)
+    yticklabels = []
+    for i in ylocs:
+        yticklabels.append(round(yaxis[i],3))
+    plt.yticks(ylocs,yticklabels)
+
+
+    ax=fig.add_subplot(3,1,3)
+
+    power = int((-1)*np.floor(math.log10(abs(np.median(nudot)))))
+    nudot = nudot*10**power
+    spinllim = spinllim*10**power
+    spinulim = spinulim*10**power
+
+
+    ax.grid()
+	
+    plt.plot(mjdinferspindown, nudot)
+    plt.fill_between(mjdinferspindown, spinllim, spinulim, color = 'b', alpha = 0.2)
+    plt.xlim(xaxis[0],xaxis[-1])
+    start_mjd_diff = int(abs(xaxis[0]-mjdinferspindown[0]))
+    end_mjd_diff = int(abs(xaxis[-1]-mjdinferspindown[-1]))
+    if end_mjd_diff == 0:
+	    end_mjd_diff = 1
+    #        plt.ylim(np.median(nudot)-2*np.std(nudot),np.median(nudot)+2*np.std(nudot))
+    plt.ylim(np.min(nudot[start_mjd_diff:-end_mjd_diff]),np.max(nudot[start_mjd_diff:-end_mjd_diff]))
+
+
+    plt.xlabel('MJD')
+    plt.ylabel(r'$\mathrm{{\dot{{\nu}}}}$ ($\mathrm{{10^{{-{0}}} s^{{-2}}}}$)'.format(power) ,fontsize=16)
+    y_formatter = matplotlib.ticker.ScalarFormatter(useOffset=False)
+    ax.yaxis.set_major_formatter(y_formatter)
+    plt.subplots_adjust(hspace=0.1)
+    cbaxes2 = fig.add_axes([0.65, 0.37, 0.25, 0.01])
+    cb2 = plt.colorbar(cax = cbaxes2,orientation="horizontal")
+    cb2.update_ticks()
+
+    plt.savefig('./{0}/{0}_final.png'.format(pulsar))
