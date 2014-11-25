@@ -273,7 +273,19 @@ def DKD(X1, X2, theta):
 
     return np.matrix(K)
 
-def combined_map(data_norm,data_not, myvmin_norm, myvmax_norm, myvmin_not,myvmax_not, xaxis, yaxis, xlines_norm, xlines_not, nudot, spinllim, spinulim, mjdinferspindown, xlabel, ylabel,pulsar, peakline=None):
+# Normalises the data to the peak
+
+def norm_to_peak(data,peakbin):
+
+    profiles = data.shape[1]
+
+    for i in range(profiles):
+            data[:,i]/=np.mean(data[peakbin-5:peakbin+5,i])
+    return data
+
+# Produces a plot with non-normalised variabiliy map, normalised variability map and spindown rate
+
+def combined_map(zoom_region_no,data_norm,data_not, myvmin_norm, myvmax_norm, myvmin_not,myvmax_not, xaxis, yaxis, xlines_norm, xlines_not, nudot, spinllim, spinulim, mjdinferspindown, xlabel, ylabel,pulsar, peakline=None):
 
     fig=plt.figure()
     fig.set_size_inches(16,10)
@@ -320,7 +332,7 @@ def combined_map(data_norm,data_not, myvmin_norm, myvmax_norm, myvmin_not,myvmax
 
     xbins = data_norm.shape[1]
     ybins = data_norm.shape[0]
-    plt.imshow(data_norm , aspect="auto",cmap = "RdBu_r", vmin = myvmin_norm, vmax = myvmax_norm, zorder = -500)    
+    plt.imshow(data_norm , aspect="auto",cmap = "RdBu_r", vmin = myvmin_norm, vmax = myvmax_norm, zorder = -5)    
     
     for i in range(xlines_norm.shape[0]):
 	    plt.vlines(xlines_norm[i]-xaxis[0],0,ybins,linestyles='dotted')
@@ -366,7 +378,7 @@ def combined_map(data_norm,data_not, myvmin_norm, myvmax_norm, myvmin_not,myvmax
     if end_mjd_diff == 0:
 	    end_mjd_diff = 1
     #        plt.ylim(np.median(nudot)-2*np.std(nudot),np.median(nudot)+2*np.std(nudot))
-    plt.ylim(np.min(nudot[start_mjd_diff:-end_mjd_diff]),np.max(nudot[start_mjd_diff:-end_mjd_diff]))
+    plt.ylim(np.min(spinllim[start_mjd_diff+100:-end_mjd_diff-100]),np.max(spinulim[start_mjd_diff+100:-end_mjd_diff-100]))
 
 
     plt.xlabel('MJD')
@@ -378,4 +390,4 @@ def combined_map(data_norm,data_not, myvmin_norm, myvmax_norm, myvmin_not,myvmax
     cb2 = plt.colorbar(cax = cbaxes2,orientation="horizontal")
     cb2.update_ticks()
 
-    plt.savefig('./{0}/{0}_final.png'.format(pulsar))
+    plt.savefig('./{0}/{0}_final_{1}.png'.format(pulsar,zoom_region_no))
