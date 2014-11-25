@@ -23,8 +23,8 @@ print "PULSAR IS",pulsar
 interval = 1
 outfiles_ext = np.sort(np.array(glob.glob('./{0}/zoomed*.txt' .format(pulsar))))
 outfiles = []
-outfiles_norm = []
 datfiles = []
+yaxis = []
 for i in range(outfiles_ext.shape[0]):
     outfiles.append(os.path.splitext(outfiles_ext[i])[0])
     datfiles.append(outfiles[i] + '.dat')
@@ -38,36 +38,34 @@ for i in range(len(outfiles)):
     linferredarray = np.loadtxt('{0}_linferred_array.dat' .format(outfiles[i]))
     inferredarray = np.loadtxt('{0}_inferred_array.dat' .format(outfiles[i]))
     inferredvar = np.loadtxt('{0}_inferred_var.dat' .format(outfiles[i]))
+
     readbins = np.loadtxt('{0}'.format(datfiles[i]))
 
     leftbin = readbins[0]
     rightbin = readbins[1]
     allbins = readbins[2]
     bins = rightbin-leftbin
+
 # yaxis = np.linspace(leftbin/allbins, rightbin/allbins, bins)
-    if i ==0:
-        yaxis = np.linspace(0, bins/allbins, bins)
+    if i ==0 or i==1: # if looking at norm and not-normalised plots, i=0 and i=1 are MP and i=2 and i=3 are IP.
+        yaxis.append(np.linspace(0, bins/allbins, bins))
+
     else:
-        yaxis = np.linspace(leftbin/allbins, rightbin/allbins, bins)
+        yaxis.append(np.linspace(leftbin/allbins, rightbin/allbins, bins))
     maxdifference = np.amax(inferredarray)
     mindifference = np.amin(inferredarray)
     limitdifference = np.max((maxdifference, np.abs(mindifference)))
 
-
-
-
-    if i == 0:
-        Vf.makemap(inferredarray, -limitdifference, limitdifference, mjdinfer, yaxis, mjd, 'MJD', 'Pulse Phase', pulsar, '{0}_inferreddata.png'.format(outfiles[i]), peakline=allbins/4-leftbin)
-        Vf.makemap(linferredarray, -np.log10(limitdifference), np.log10(limitdifference), mjdinfer, yaxis, mjd, 'MJD', 'Pulse Phase', pulsar, '{0}_linferreddata.png'.format(outfiles[i]), peakline=allbins/4-leftbin)
-        Vf.makemap(inferredvar, 0 , np.amax(inferredvar), mjdinfer, yaxis, mjd, 'MJD', 'Pulse Phase', pulsar, '{0}_inferredvariance.png'.format(outfiles[i]), peakline=allbins/4-leftbin)
+    if i == 0 or i == 1:
+        Vf.makemap(inferredarray, -limitdifference, limitdifference, mjdinfer, yaxis[i], mjd, 'MJD', 'Pulse Phase', pulsar, '{0}_inferreddata.png'.format(outfiles[i]), peakline=allbins/4-leftbin)
+        Vf.makemap(linferredarray, -np.log10(limitdifference), np.log10(limitdifference), mjdinfer, yaxis[i], mjd, 'MJD', 'Pulse Phase', pulsar, '{0}_linferreddata.png'.format(outfiles[i]), peakline=allbins/4-leftbin)
+        Vf.makemap(inferredvar, 0 , np.amax(inferredvar), mjdinfer, yaxis[i], mjd, 'MJD', 'Pulse Phase', pulsar, '{0}_inferredvariance.png'.format(outfiles[i]), peakline=allbins/4-leftbin)
 
     else:
-        Vf.makemap(inferredarray, -limitdifference, limitdifference, mjdinfer, yaxis, mjd, 'MJD', 'Pulse Phase', pulsar, '{0}_inferreddata.png'.format(outfiles[i]))
-        Vf.makemap(linferredarray, -np.log10(limitdifference), np.log10(limitdifference), mjdinfer, yaxis, mjd, 'MJD', 'Pulse Phase', pulsar, '{0}_linferreddata.png'.format(outfiles[i]))
-        Vf.makemap(inferredvar, 0 , np.amax(inferredvar), mjdinfer, yaxis, mjd, 'MJD', 'Pulse Phase', pulsar, '{0}_inferredvariance.png'.format(outfiles[i]))
+        Vf.makemap(inferredarray, -limitdifference, limitdifference, mjdinfer, yaxis[i], mjd, 'MJD', 'Pulse Phase', pulsar, '{0}_inferreddata.png'.format(outfiles[i]))
+        Vf.makemap(linferredarray, -np.log10(limitdifference), np.log10(limitdifference), mjdinfer, yaxis[i], mjd, 'MJD', 'Pulse Phase', pulsar, '{0}_linferreddata.png'.format(outfiles[i]))
+        Vf.makemap(inferredvar, 0 , np.amax(inferredvar), mjdinfer, yaxis[i], mjd, 'MJD', 'Pulse Phase', pulsar, '{0}_inferredvariance.png'.format(outfiles[i]))
         
-
-
     if (args.combined):
 
         nudot = np.loadtxt('{0}/{0}_nudot.dat' .format(pulsar))
@@ -84,10 +82,10 @@ for i in range(len(outfiles)):
         ax=fig.add_subplot(2,1,1)
         ax.xaxis.set_visible(False)
 
-        if i == 0:
-            Vf.makemap(inferredarray, -limitdifference, limitdifference, mjdinfer, yaxis, mjd, 'MJD', 'Pulse phase', pulsar, '.not_saved.png',peakline=allbins/4-leftbin, combined=True)
+        if i == 0 or i == 1:
+            Vf.makemap(inferredarray, -limitdifference, limitdifference, mjdinfer, yaxis[i], mjd, 'MJD', 'Pulse phase', pulsar, '.not_saved.png',peakline=allbins/4-leftbin, combined=True)
         else:
-            Vf.makemap(inferredarray, -limitdifference, limitdifference, mjdinfer, yaxis, mjd, 'MJD', 'Pulse phase', pulsar, '.not_saved.png',combined=True)
+            Vf.makemap(inferredarray, -limitdifference, limitdifference, mjdinfer, yaxis[i], mjd, 'MJD', 'Pulse phase', pulsar, '.not_saved.png',combined=True)
 
 
         ax=fig.add_subplot(2,1,2)
@@ -114,28 +112,34 @@ for i in range(len(outfiles)):
         cb.update_ticks()
 
         plt.savefig('./{0}/{0}_comparison_{1}.png'.format(pulsar,i))
+        
+        if i == 0:
+            leftbin_initial = leftbin # to use later when plotting peakline
 
 
-    if (args.final):
+if (args.final):
 
-        nudot = np.loadtxt('{0}/{0}_nudot.dat' .format(pulsar))
-        Llim2 = np.loadtxt('{0}/{0}_Llim2.dat' .format(pulsar))
-        Ulim2 = np.loadtxt('{0}/{0}_Ulim2.dat' .format(pulsar))
-        mjdinfer_spindown = np.loadtxt('./{0}/{0}_mjdinfer_spindown.dat'.format(pulsar))
+    nudot = np.loadtxt('{0}/{0}_nudot.dat' .format(pulsar))
+    Llim2 = np.loadtxt('{0}/{0}_Llim2.dat' .format(pulsar))
+    Ulim2 = np.loadtxt('{0}/{0}_Ulim2.dat' .format(pulsar))
+    mjdinfer_spindown = np.loadtxt('./{0}/{0}_mjdinfer_spindown.dat'.format(pulsar))
+    mjd_norm = np.loadtxt('./{0}/mjd_norm.txt'.format(pulsar))
+        
+    for i in range(outfiles_ext.shape[0]/2):
 
-        mjd_norm = np.loadtxt('./{0}/norm_mjd.txt'.format(pulsar))
-        inferredarray_norm = np.loadtxt('{0}_norm_inferred_array.dat' .format(outfiles[i]))
-
-
+        inferredarray = np.loadtxt('{0}_inferred_array.dat' .format(outfiles[2*i]))
+        inferredarray_norm = np.loadtxt('{0}_inferred_array.dat' .format(outfiles[2*i+1]))
         maxdifference_norm = np.amax(inferredarray_norm)
         mindifference_norm = np.amin(inferredarray_norm)
         limitdifference_norm = np.max((maxdifference_norm, np.abs(mindifference_norm)))
 
+        maxdifference = np.amax(inferredarray)
+        mindifference = np.amin(inferredarray)
+        limitdifference = np.max((maxdifference, np.abs(mindifference)))
+
         if i == 0:
-            Vf.combined_map(inferredarray_norm,inferredarray, -limitdifference_norm, limitdifference_norm, -limitdifference, limitdifference, mjdinfer, yaxis, mjd_norm,mjd,nudot,Llim2,Ulim2,mjdinfer_spindown, 'MJD', 'Phase fraction', pulsar, peakline=allbins/4-leftbin)
+            Vf.combined_map(i,inferredarray_norm,inferredarray, -limitdifference_norm, limitdifference_norm, -limitdifference, limitdifference, mjdinfer, yaxis[i], mjd_norm,mjd,nudot,Llim2,Ulim2,mjdinfer_spindown, 'MJD', 'Phase fraction', pulsar, peakline=allbins/4-leftbin_initial)
         else:
-            Vf.combined_map(inferredarray_norm,inferredarray, -limitdifference_norm, limitdifference_norm, -limitdifference, limitdifference, mjdinfer, yaxis, mjd_norm,mjd,nudot,Llim2,Ulim2,mjdiner_spindown, 'MJD', 'Phase fraction', pulsar)
+            Vf.combined_map(i,inferredarray_norm,inferredarray, -limitdifference_norm, limitdifference_norm, -limitdifference, limitdifference, mjdinfer, yaxis[i+1], mjd_norm,mjd,nudot,Llim2,Ulim2,mjdinfer_spindown, 'MJD', 'Phase fraction', pulsar)
         
-
-
 
