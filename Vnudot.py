@@ -56,7 +56,7 @@ for line in q:
         epoch = float(pepoch_line[1])
 q.close()
 
-nudot_infer=1
+nudot_infer=10
 mjd = residuals[:,0] + epoch
 mjdfirst = mjd[0]
 mjdlast = mjd[-1]
@@ -97,7 +97,8 @@ K1 = kernel.K(xtraining1, xtraining1)
 K1invOut = GPy.util.linalg.pdinv(np.matrix(K1))
 K1inv = K1invOut[1]
 X_TRAINING = np.matrix([xtraining]).T
-XPREDICT = np.matrix([mjdinfer30]).T
+#XPREDICT = np.matrix([mjdinfer30]).T
+XPREDICT = X_TRAINING
 Y_TRAINING = np.matrix(np.array(ytraining.flatten())).T
 
 # First lengthscale kernel
@@ -117,18 +118,19 @@ K_prime_p += 3*par[0]/par[1]**4 # These are the diagonal elements of the varianc
 KiKx, _ = GPy.util.linalg.dpotrs(K1inv, np.asfortranarray(K_prime.T), lower = 1)
 #-------
 #mu = np.dot(KiKx.T, self.likelihood.Y)
-nudot = nudot0  + np.dot(KiKx.T, Y_TRAINING)/period/(nudot_infer*86400)**2
+nudot = np.array(nudot0  + np.dot(KiKx.T, Y_TRAINING)/period/(86400)**2)
 #-------
 
 #Kxx = self.kern.Kdiag(_Xnew, which_parts=which_parts)
 #var = Kxx - np.sum(np.multiply(KiKx, Kx), 0)
 #var = var[:, None]
-nudot_err = np.sqrt(K_prime_p - np.sum(np.multiply(KiKx, K_prime.T),0).T)/(nudot_infer*86400)**2
+nudot_err = np.array(np.sqrt(K_prime_p - np.sum(np.multiply(KiKx, K_prime.T),0).T)/(86400)**2)
 print "Average nudot error is:", np.mean(nudot_err)
 
 # Limits of nudot plot
 Ulim2 = np.array(nudot + 2*nudot_err)
 Llim2 = np.array(nudot - 2*nudot_err)
+
 # Write outputs
 outputfile = '{0}/{0}_nudot.dat' .format(pulsar)
 np.savetxt(outputfile, nudot)
@@ -173,7 +175,14 @@ if (args.diagnosticplots):
 #    plt.plot(mjdinfer30, nudot, 'r+')
 #    x1,x2,y1,y2 = plt.axis()
 #    plt.axis((x1,x2,np.min(Llim2[10:-10]), np.max(Ulim2[10:-10])))
-    plt.fill_between(xnew30[30:-30,0], Llim2[30:-30,0], Ulim2[30:-30,0], color = 'b', alpha = 0.2)
+#    plt.fill_between(xnew30[30:-30,0], Llim2[30:-30,0], Ulim2[30:-30,0], color = 'b', alpha = 0.2)
+    plt.fill_between(xtraining1[3:-3,0], Llim2[3:-3,0], Ulim2[3:-3,0], color = 'b', alpha = 0.2)
+    x=np.squeeze(xtraining1)
+    y=np.squeeze(nudot)
+    ye=np.squeeze(nudot_err)
+    print x.shape, y.shape, ye.shape
+#    plt.plot(x[3:-3],y[3:-3],'b-')
+    plt.errorbar(x[3:-3], y[3:-3], yerr=ye[3:-3], fmt='o')
     plt.subplots_adjust(hspace=0)
     plt.savefig('./{0}/nudot.png'.format(pulsar))
     plt.clf()
