@@ -16,6 +16,26 @@ def SE(X1, X2, amp, length, white_noise = False):
         K = amp**2 * np.exp(- D2 / (2*(length**2))) # calculate covariance matrix
         return np.matrix(K)
 
+def forpaper(pulsar,profile1, profile2, median, yllim=None, yulim=None):
+    nbins = profile1.shape[0]
+    xaxis = np.linspace(0,float(nbins)/1024,nbins)
+    xlocs = np.linspace(0,nbins-1,10)
+    xticklabels = []
+    for i in xlocs:
+	    xticklabels.append(np.round(xaxis[int(i)],3))
+    ax = plt.figure().add_subplot(1,1,1)
+    plt.plot(profile1,'b')
+    plt.plot(profile2,'r')
+    plt.plot(median,'k--')
+    plt.vlines(np.argmax(median),yllim,yulim,linestyles='dotted')
+    plt.ylim(yllim,yulim)
+    plt.ylabel(r'Normalised Intensity',fontsize=14)
+    plt.xlabel(r'Fraction of Pulse Period',fontsize=14)
+    plt.xticks(xlocs,xticklabels)
+    plt.savefig('./{0}/{0}_profiles.png' .format(pulsar))
+    plt.clf()
+
+
 def makeplots(pulsar, data, mjd, dir, allbins, template=None, yllim=None, yulim=None, peakindex=None):
     nbins = data.shape[0]
     nprofiles = data.shape[1]
@@ -39,6 +59,9 @@ def makeplots(pulsar, data, mjd, dir, allbins, template=None, yllim=None, yulim=
 	plt.suptitle('{0}'.format(mjd[i]), fontsize=14, fontweight='bold')
         plt.savefig('./{0}/{1}/{2}_{3}.png' .format(pulsar,dir,int(math.floor(mjd[i])),i))
         plt.clf()
+
+
+
 
 def goodplots_ip(pulsar, data_mp, data_ip, mjd, dir, allbins, startbin, template_mp, template_ip, yllim, yulim, peakindex):
     if not (os.path.exists('./{0}/{1}'.format(pulsar,dir))):
@@ -125,6 +148,7 @@ def removebaseline(data, outliers):
     baselineremoved = data
     smallestrms = np.zeros(nprofiles)
     smallestmean = np.zeros(nprofiles)
+    peak = np.zeros(nprofiles)
     for i in range(nprofiles):
         rms = np.zeros(8)
         mean = np.zeros(8)
@@ -133,16 +157,18 @@ def removebaseline(data, outliers):
             rms[j] = np.std(data[j*section:(j+1)*section,i])
             mean[j] = np.mean(data[j*section:(j+1)*section,i])
         smallestrms[i] = np.min(rms)
+        peak[i] = np.max(data[:,i]) # remove low snr not just the std of noise
         baseindex = np.argmin(rms)
         baseline = mean[baseindex]
         smallestmean[i] = baseline
         baselineremoved[:,i] = data[:,i] - baseline
     medianrms = np.median(smallestrms)
-
+    medianpeak = np.median(peak)
     outlierindex = []
     inlierindex = []
     for i in range(nprofiles):
-        if smallestrms[i] > outliers * medianrms or smallestrms[i] * outliers < medianrms or np.min(baselineremoved[:,i]) < - 5 * smallestrms[i]:
+        if smallestrms[i]/np.max(data[:,i]) > outliers * medianrms/medianpeak:
+#        if smallestrms[i] > outliers * medianrms or smallestrms[i] * outliers < medianrms or np.min(baselineremoved[:,i]) < - 5 * smallestrms[i]:
             outlierindex.append(i)
         else:
             inlierindex.append(i)
@@ -172,6 +198,7 @@ def binstartend(data,peakoriginal,rms):
     bins = data.shape[0]
     window = bins/20
     print peak, peakbin, rms
+    print 'peak snr is',peak/rms
     peaksnr = peak/rms
     power = peaksnr
     peaks = 0
@@ -285,7 +312,7 @@ def norm_to_peak(data,peakbin):
 
 # Produces a plot with non-normalised variabiliy map, normalised variability map and spindown rate
 
-def combined_map(zoom_region_no,data_norm,data_not, myvmin_norm, myvmax_norm, myvmin_not,myvmax_not, xaxis, yaxis, xlines_norm, xlines_not, nudot, spinllim, spinulim, mjdinferspindown, xlabel, ylabel,pulsar, peakline=None):
+def combined_map(zoom_region_no,data_norm,data_not, myvmin_norm, myvmax_norm, myvmin_not,myvmax_not, xaxis, yaxis, xlines_norm, xlines_not, nudot, errorbars, mjdinferspindown, xlabel, ylabel,pulsar, peakline=None):
 
     fig=plt.figure()
     fig.set_size_inches(16,10)
@@ -364,21 +391,22 @@ def combined_map(zoom_region_no,data_norm,data_not, myvmin_norm, myvmax_norm, my
 
     power = int((-1)*np.floor(math.log10(abs(np.median(nudot)))))
     nudot = nudot*10**power
-    spinllim = spinllim*10**power
-    spinulim = spinulim*10**power
-
+    #spinllim = spinllim*10**power
+    #spinulim = spinulim*10**power
+    errorbars = errorbars*10**power
 
     ax.grid()
-	
-    plt.plot(mjdinferspindown, nudot)
-    plt.fill_between(mjdinferspindown, spinllim, spinulim, color = 'b', alpha = 0.2)
+    print 'mjdinferspindwon and nudot', mjdinferspindown.shape,nudot.shape 
+#    plt.plot(mjdinferspindown, nudot)
+    plt.errorbar(mjdinferspindown[100:-3], nudot[100:-3], yerr=errorbars[100:-3],linestyle='-')
+#    plt.fill_between(mjdinferspindown, spinllim, spinulim, color = 'b', alpha = 0.2)
     plt.xlim(xaxis[0],xaxis[-1])
     start_mjd_diff = int(abs(xaxis[0]-mjdinferspindown[0]))
     end_mjd_diff = int(abs(xaxis[-1]-mjdinferspindown[-1]))
     if end_mjd_diff == 0:
 	    end_mjd_diff = 1
     #        plt.ylim(np.median(nudot)-2*np.std(nudot),np.median(nudot)+2*np.std(nudot))
-    plt.ylim(np.min(spinllim[start_mjd_diff+100:-end_mjd_diff-100]),np.max(spinulim[start_mjd_diff+100:-end_mjd_diff-100]))
+#    plt.ylim(np.min(spinllim[start_mjd_diff+100:-end_mjd_diff-100]),np.max(spinulim[start_mjd_diff+100:-end_mjd_diff-100]))
 
 
     plt.xlabel('MJD')
