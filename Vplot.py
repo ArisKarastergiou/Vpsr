@@ -66,62 +66,64 @@ for i in range(len(outfiles)):
         Vf.makemap(linferredarray, -np.log10(limitdifference), np.log10(limitdifference), mjdinfer, yaxis[i], mjd, 'MJD', 'Pulse Phase', pulsar, '{0}_linferreddata.png'.format(outfiles[i]))
         Vf.makemap(inferredvar, 0 , np.amax(inferredvar), mjdinfer, yaxis[i], mjd, 'MJD', 'Pulse Phase', pulsar, '{0}_inferredvariance.png'.format(outfiles[i]))
         
-    if (args.combined):
+#     if (args.combined):
 
-        nudot = np.loadtxt('{0}/{0}_nudot.dat' .format(pulsar))
-        Llim2 = np.loadtxt('{0}/{0}_Llim2.dat' .format(pulsar))
-        Ulim2 = np.loadtxt('{0}/{0}_Ulim2.dat' .format(pulsar))
-        mjdinfer_spindown = np.loadtxt('./{0}/{0}_mjdinfer_spindown.dat'.format(pulsar))
-        power = int((-1)*np.floor(math.log10(abs(np.median(nudot)))))
-        nudot = nudot*10**power
-        Llim2 = Llim2*10**power
-        Ulim2 = Ulim2*10**power
+#         nudot = np.loadtxt('{0}/{0}_nudot.dat' .format(pulsar))
+#         Llim2 = np.loadtxt('{0}/{0}_Llim2.dat' .format(pulsar))
+#         Ulim2 = np.loadtxt('{0}/{0}_Ulim2.dat' .format(pulsar))
+#         mjdinfer_spindown = np.loadtxt('./{0}/{0}_mjdinfer_spindown.dat'.format(pulsar))
+#         power = int((-1)*np.floor(math.log10(abs(np.median(nudot)))))
+#         nudot = nudot*10**power
+#         Llim2 = Llim2*10**power
+#         Ulim2 = Ulim2*10**power
 
-        fig=plt.figure()
-        fig.set_size_inches(16,10)
-        ax=fig.add_subplot(2,1,1)
-        ax.xaxis.set_visible(False)
+#         fig=plt.figure()
+#         fig.set_size_inches(16,10)
+#         ax=fig.add_subplot(2,1,1)
+#         ax.xaxis.set_visible(False)
 
-        if i == 0 or i == 1:
-            Vf.makemap(inferredarray, -limitdifference, limitdifference, mjdinfer, yaxis[i], mjd, 'MJD', 'Pulse phase', pulsar, '.not_saved.png',peakline=allbins/4-leftbin, combined=True)
-        else:
-            Vf.makemap(inferredarray, -limitdifference, limitdifference, mjdinfer, yaxis[i], mjd, 'MJD', 'Pulse phase', pulsar, '.not_saved.png',combined=True)
+#         if i == 0 or i == 1:
+#             Vf.makemap(inferredarray, -limitdifference, limitdifference, mjdinfer, yaxis[i], mjd, 'MJD', 'Pulse phase', pulsar, '.not_saved.png',peakline=allbins/4-leftbin, combined=True)
+#         else:
+#             Vf.makemap(inferredarray, -limitdifference, limitdifference, mjdinfer, yaxis[i], mjd, 'MJD', 'Pulse phase', pulsar, '.not_saved.png',combined=True)
 
 
-        ax=fig.add_subplot(2,1,2)
+#         ax=fig.add_subplot(2,1,2)
         
-        ax.grid()
+#         ax.grid()
 
-        plt.plot(mjdinfer_spindown, nudot)
-        plt.fill_between(mjdinfer_spindown, Llim2, Ulim2, color = 'b', alpha = 0.2)
-        plt.xlim(mjdinfer[0],mjdinfer[-1])
-        start_mjd_diff = int(abs(mjdinfer[0]-mjdinfer_spindown[0]))
-        end_mjd_diff = int(abs(mjdinfer[-1]-mjdinfer_spindown[-1]))
-        if end_mjd_diff == 0:
-            end_mjd_diff = 1
-#        plt.ylim(np.median(nudot)-2*np.std(nudot),np.median(nudot)+2*np.std(nudot))
-        plt.ylim(np.min(nudot[start_mjd_diff:-end_mjd_diff]),np.max(nudot[start_mjd_diff:-end_mjd_diff]))
+#         plt.plot(mjdinfer_spindown, nudot)
+#         plt.fill_between(mjdinfer_spindown, Llim2, Ulim2, color = 'b', alpha = 0.2)
+#         plt.xlim(mjdinfer[0],mjdinfer[-1])
+#         start_mjd_diff = int(abs(mjdinfer[0]-mjdinfer_spindown[0]))
+#         end_mjd_diff = int(abs(mjdinfer[-1]-mjdinfer_spindown[-1]))
+#         if end_mjd_diff == 0:
+#             end_mjd_diff = 1
+# #        plt.ylim(np.median(nudot)-2*np.std(nudot),np.median(nudot)+2*np.std(nudot))
+#         plt.ylim(np.min(nudot[start_mjd_diff:-end_mjd_diff]),np.max(nudot[start_mjd_diff:-end_mjd_diff]))
 
-        plt.xlabel('MJD')
-        plt.ylabel(r'$\mathrm{{\dot{{\nu}}}}$ ($\mathrm{{10^{{-{0}}} s^{{-2}}}}$)'.format(power) ,fontsize=16)
-        y_formatter = matplotlib.ticker.ScalarFormatter(useOffset=False)
-        ax.yaxis.set_major_formatter(y_formatter)
-        plt.subplots_adjust(hspace=0)
-        cbaxes = fig.add_axes([0.65, 0.49, 0.25, 0.01])
-        cb = plt.colorbar(cax = cbaxes,orientation="horizontal")
-        cb.update_ticks()
+#         plt.xlabel('MJD')
+#         plt.ylabel(r'$\mathrm{{\dot{{\nu}}}}$ ($\mathrm{{10^{{-{0}}} s^{{-2}}}}$)'.format(power) ,fontsize=16)
+#         y_formatter = matplotlib.ticker.ScalarFormatter(useOffset=False)
+#         ax.yaxis.set_major_formatter(y_formatter)
+#         plt.subplots_adjust(hspace=0)
+#         cbaxes = fig.add_axes([0.65, 0.49, 0.25, 0.01])
+#         cb = plt.colorbar(cax = cbaxes,orientation="horizontal")
+#         cb.update_ticks()
 
-        plt.savefig('./{0}/{0}_comparison_{1}.png'.format(pulsar,i))
+#         plt.savefig('./{0}/{0}_comparison_{1}.png'.format(pulsar,i))
+
         
-        if i == 0:
-            leftbin_initial = leftbin # to use later when plotting peakline
+    if i == 0:
+        leftbin_initial = leftbin # to use later when plotting peakline
 
 
 if (args.final):
 
     nudot = np.loadtxt('{0}/{0}_nudot.dat' .format(pulsar))
-    Llim2 = np.loadtxt('{0}/{0}_Llim2.dat' .format(pulsar))
-    Ulim2 = np.loadtxt('{0}/{0}_Ulim2.dat' .format(pulsar))
+#   Llim2 = np.loadtxt('{0}/{0}_Llim2.dat' .format(pulsar))
+#   Ulim2 = np.loadtxt('{0}/{0}_Ulim2.dat' .format(pulsar))
+    errorbars = np.loadtxt('{0}/{0}_errorbars.dat' .format(pulsar))
     mjdinfer_spindown = np.loadtxt('./{0}/{0}_mjdinfer_spindown.dat'.format(pulsar))
     mjd_norm = np.loadtxt('./{0}/mjd_norm.txt'.format(pulsar))
         
@@ -138,8 +140,8 @@ if (args.final):
         limitdifference = np.max((maxdifference, np.abs(mindifference)))
 
         if i == 0:
-            Vf.combined_map(i,inferredarray_norm,inferredarray, -limitdifference_norm, limitdifference_norm, -limitdifference, limitdifference, mjdinfer, yaxis[i], mjd_norm,mjd,nudot,Llim2,Ulim2,mjdinfer_spindown, 'MJD', 'Phase fraction', pulsar, peakline=allbins/4-leftbin_initial)
+            Vf.combined_map(i,inferredarray_norm,inferredarray, -limitdifference_norm, limitdifference_norm, -limitdifference, limitdifference, mjdinfer, yaxis[i], mjd_norm,mjd,nudot,errorbars,mjdinfer_spindown, 'MJD', 'Phase fraction', pulsar, peakline=allbins/4-leftbin_initial)
         else:
-            Vf.combined_map(i,inferredarray_norm,inferredarray, -limitdifference_norm, limitdifference_norm, -limitdifference, limitdifference, mjdinfer, yaxis[i+1], mjd_norm,mjd,nudot,Llim2,Ulim2,mjdinfer_spindown, 'MJD', 'Phase fraction', pulsar)
+            Vf.combined_map(i,inferredarray_norm,inferredarray, -limitdifference_norm, limitdifference_norm, -limitdifference, limitdifference, mjdinfer, yaxis[i+1], mjd_norm,mjd,nudot,errorbars,mjdinfer_spindown, 'MJD', 'Phase fraction', pulsar)
         
 
