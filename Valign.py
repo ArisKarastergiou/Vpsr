@@ -129,6 +129,7 @@ while peaks != 0 and regioncounter < 5:
 # last attempt has failed, hence we are here, so:
 regioncounter -= 1
 
+#Good zoom regions for making plots suitable for publication
 if pulsar == 'J0738-4042':
     binstartzoom = [138]
     binendzoom = [357]
@@ -248,12 +249,15 @@ if (args.goodprofiles):
         # Make interpulse plots of good profiles if needed
         Vf.goodplots_ip(pulsar,aligned_data[left[0]:right[0],:], aligned_data[left[1]:right[1],:],mjdout,dir,bins,left[1],originaltemplate[left[0]:right[0]], originaltemplate[left[1]:right[1]],-0.5*np.std(aligned_data[left[0]:right[0],:]),np.max(aligned_data[left[0]:right[0],:]),peakindex=bins/4-left[0])
 
+#        Vf.forpaper_ip(pulsar,aligned_data[left[0]:right[0],12],aligned_data[left[0]:right[0],94],originaltemplate[left[0]:right[0]],aligned_data[left[1]:right[1],12],aligned_data[left[1]:right[1],94],originaltemplate[left[1]:right[1]],yllim=-0.1*np.max(originaltemplate),yulim=np.maximum(np.max(aligned_data[left[0]:right[0],12]),np.max(aligned_data[left[0]:right[0],94])))
+
     else:
         # Make plots of good profiles if needed
         Vf.makeplots(pulsar,aligned_data[left[0]:right[0],:],mjdout,dir,bins,template=originaltemplate[left[0]:right[0]],yllim=-0.1*np.max(originaltemplate),yulim=np.max(aligned_data[left[0]:right[0],:]),peakindex=bins/4-left[0])
 
 #to make plots for the paper
-#        Vf.forpaper(pulsar,aligned_data[left[0]:right[0],162],aligned_data[left[0]:right[0],40],originaltemplate[left[0]:right[0]],yllim=-0.1*np.max(originaltemplate),yulim=np.max(aligned_data[left[0]:right[0],:]))
+#        Vf.forpaper(pulsar,aligned_data[left[0]:right[0],57],aligned_data[left[0]:right[0],122],originaltemplate[left[0]:right[0]],yllim=-0.1*np.max(originaltemplate),yulim=np.maximum(np.max(aligned_data[left[0]:right[0],57]),np.max(aligned_data[left[0]:right[0],122])))
+
 
 # Make plots of removed profiles if needed
 if (args.badprofiles):
