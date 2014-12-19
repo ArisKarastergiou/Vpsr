@@ -13,6 +13,7 @@ import math
 import matplotlib
 import matplotlib.pyplot as plt
 import scipy as sc
+import scipy.signal as ss
 import sys
 import Vfunctions as Vf
 import os 
@@ -25,8 +26,8 @@ parser.add_argument('-f','--filename', help='File containing residuals', require
 parser.add_argument('-e','--parfile', help='ephemeris for nudot', required=True)
 parser.add_argument('-p','--pulsar', help='Pulsar name', required=True)
 parser.add_argument('-d','--diagnosticplots', help='make image plots', action='store_true')
-parser.add_argument('-r1','--rbf1', nargs=2 ,default = (10,100), help='lengthscale boundaries 1', type = float, required = False)
-parser.add_argument('-r2','--rbf2', nargs=2 ,default = (100, 500),help='lengthscale boundaries 2', type = float, required = False)
+parser.add_argument('-r1','--rbf1', nargs=2 ,default = (30,100), help='lengthscale boundaries 1', type = float, required = False)
+parser.add_argument('-r2','--rbf2', nargs=2 ,default = (100, 1000),help='lengthscale boundaries 2', type = float, required = False)
 #------------------------------
 
 args = parser.parse_args()
@@ -87,6 +88,46 @@ model.optimize_restarts(num_restarts = 10)
 print "MODEL FOR PULSAR",pulsar, model
 ypredict, yvariance, a, b = model.predict(xnew)
 ymodel, yvarmodel, a1, b1 = model.predict(xtraining1)
+
+
+# Compute residuals at training points
+resid_resid = np.array(ymodel - ytraining1)
+resid_resid_err = 2 * np.sqrt(yvarmodel)
+rr = np.squeeze(resid_resid.T)
+print rr.shape
+# Compute autocorrelation function of residuals to test if it is white noise
+autocorr = np.correlate(rr,rr, mode='full')
+smoothac = ss.savgol_filter(autocorr[autocorr.shape[0]/2:],13, 4)
+previous = 1000000
+zerocrossing = 0
+i=0
+while zerocrossing < 3:
+    if (smoothac[i]*previous < 0):
+        print smoothac[i],i, zerocrossing
+        zerocrossing += 1
+        peak = i
+    previous = smoothac[i]
+    i+=1
+print 0.8*peak
+plt.plot(autocorr[autocorr.shape[0]/2:])
+plt.xlabel('Lag')
+plt.ylabel('Autocorrelation')
+plt.savefig('{0}_ac2kern_100_1000.png' .format(pulsar))
+#sys.exit()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 Ulim = ypredict + 2*np.sqrt(yvariance)
 Llim = ypredict - 2*np.sqrt(yvariance)
@@ -160,19 +201,23 @@ if (args.diagnosticplots):
     fig.set_size_inches(16,10)
     ax=fig.add_subplot(2,1,1)
     plt.plot(xtraining, ytraining,'r.')
-    plt.plot(mjdinfer, ypredict, 'b-')
-    plt.fill_between(xnew[:,0], Llim[:,0], Ulim[:,0], color = 'b', alpha = 0.2)
-    plt.xlabel('Modified Julian Days')
-    plt.ylabel('Timing Residuals (Sec)')
+    plt.plot(mjdinfer, ypredict, 'k-')
+    plt.fill_between(xnew[:,0], Llim[:,0], Ulim[:,0], color = 'k', alpha = 0.2)
+    plt.xlabel('Modified Julian Days', fontsize=16)
+    plt.ylabel('Timing Residuals (Sec)', fontsize=16)
     ax.xaxis.set_visible(False)
+    ax.grid()
+    plt.ylim(-0.12,0.09)
     ax=fig.add_subplot(2,1,2)
     plt.plot(xtraining, resid_resid,'k-')
-    plt.errorbar(xtraining, resid_resid, yerr=resid_resid_err, fmt='o') 
+    plt.errorbar(xtraining, resid_resid, yerr=resid_resid_err, fmt='.',color = 'k')
     ax.grid()
-    plt.xlabel('Modified Julian Days')
-    plt.ylabel('Data - Model (Sec)')
+    plt.xlabel('Modified Julian Days', fontsize=16)
+    plt.ylabel('Data - Model (Sec)', fontsize=16)
     #x1,x2,y1,y2 = plt.axis()
     #plt.axis((x1,x2,np.min(Llim), np.max(Ulim)))
+    plt.ylim(-0.006,0.008)
+    plt.subplots_adjust(hspace=0.1)
     plt.savefig('./{0}/residuals.png'.format(pulsar))
     plt.clf()
 #    plt.plot(mjdinfer30, nudot, 'r+')
