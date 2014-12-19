@@ -26,8 +26,8 @@ parser.add_argument('-f','--filename', help='File containing residuals', require
 parser.add_argument('-e','--parfile', help='ephemeris for nudot', required=True)
 parser.add_argument('-p','--pulsar', help='Pulsar name', required=True)
 parser.add_argument('-d','--diagnosticplots', help='make image plots', action='store_true')
-parser.add_argument('-r1','--rbf1', nargs=2 ,default = (10,100), help='lengthscale boundaries 1', type = float, required = False)
-parser.add_argument('-r2','--rbf2', nargs=2 ,default = (100, 500),help='lengthscale boundaries 2', type = float, required = False)
+parser.add_argument('-r1','--rbf1', nargs=2 ,default = (30,100), help='lengthscale boundaries 1', type = float, required = False)
+parser.add_argument('-r2','--rbf2', nargs=2 ,default = (100, 1000),help='lengthscale boundaries 2', type = float, required = False)
 #------------------------------
 
 args = parser.parse_args()
@@ -89,14 +89,33 @@ print "MODEL FOR PULSAR",pulsar, model
 ypredict, yvariance, a, b = model.predict(xnew)
 ymodel, yvarmodel, a1, b1 = model.predict(xtraining1)
 
+#resid_resid = np.array(ymodel - ytraining1)
+
+#plt.plot(mjd,resid_resid)
+#plt.savefig('r_r.png')
+#plt.clf
+
+#xtraining1 = xtraining.reshape(xtraining.shape[0],1)
+#ytraining1 = resid_resid.reshape(ytraining.shape[0],1)
+#xnew = mjdinfer.reshape(mjdinfer.shape[0],1)
+#xnew30 = mjdinfer30.reshape(mjdinfer30.shape[0],1)
+#model = GPy.models.GPRegression(xtraining1,ytraining1,kernel, normalize_X=False)
+#model.constrain_bounded('rbf_lengthscale', rbf1s, rbf1e)
+#model.constrain_bounded('noise_variance', 0,TOAerror*TOAerror)
+#model.optimize()
+#model.optimize_restarts(num_restarts = 10)
+#print "MODEL FOR PULSAR",pulsar, model
+#ypredict, yvariance, a, b = model.predict(xnew)
+#ymodel, yvarmodel, a1, b1 = model.predict(xtraining1)
+
 # Compute residuals at training points
 resid_resid = np.array(ymodel - ytraining1)
 resid_resid_err = 2 * np.sqrt(yvarmodel)
 rr = np.squeeze(resid_resid.T)
-print rr.shape
+print "rr shape", rr.shape
 # Compute autocorrelation function of residuals to test if it is white noise
 autocorr = np.correlate(rr,rr, mode='full')
-smoothac = ss.savgol_filter(autocorr[150:],13, 4)
+smoothac = ss.savgol_filter(autocorr[autocorr.shape[0]/2:],13, 4)
 previous = 1000000
 zerocrossing = 0
 i=0
@@ -108,9 +127,13 @@ while zerocrossing < 3:
     previous = smoothac[i]
     i+=1
 print 0.8*peak
-plt.plot(smoothac)
-plt.savefig('ac.png')
-sys.exit()
+
+plt.plot(autocorr[autocorr.shape[0]/2:])
+plt.xlabel('Lag')
+plt.ylabel('Autocorrelation')
+plt.savefig('{0}_ac1kern.png' .format(pulsar))
+plt.clf()
+
 
 
 
@@ -133,15 +156,15 @@ Y_TRAINING = np.matrix(np.array(ytraining.flatten())).T
 
 # First lengthscale kernel
 CovFunc = Vf.DKD
-par[0] = model['rbf_1_variance'] # use the optimized amplitude
-par[1] = model['rbf_1_lengthscale'] # use the optimized lengthscale
+par[0] = model['rbf_variance'] # use the optimized amplitude
+par[1] = model['rbf_lengthscale'] # use the optimized lengthscale
 K_prime = CovFunc(XPREDICT, X_TRAINING, par) # training points
 K_prime_p = 3*par[0]/par[1]**4 # These are the diagonal elements of the variance
 # Second lengthscale kernel
-par[0] = model['rbf_2_variance'] # use the optimized amplitude
-par[1] = model['rbf_2_lengthscale'] # use the optimized lengthscale
-K_prime += CovFunc(XPREDICT, X_TRAINING, par) # training points
-K_prime_p += 3*par[0]/par[1]**4 # These are the diagonal elements of the variance
+# par[0] = model['rbf_2_variance'] # use the optimized amplitude
+# par[1] = model['rbf_2_lengthscale'] # use the optimized lengthscale
+# K_prime += CovFunc(XPREDICT, X_TRAINING, par) # training points
+# K_prime_p += 3*par[0]/par[1]**4 # These are the diagonal elements of the variance
 
 
 # Now work out nudot and errors
@@ -186,19 +209,22 @@ if (args.diagnosticplots):
     fig.set_size_inches(16,10)
     ax=fig.add_subplot(2,1,1)
     plt.plot(xtraining, ytraining,'r.')
-    plt.plot(mjdinfer, ypredict, 'b-')
-    plt.fill_between(xnew[:,0], Llim[:,0], Ulim[:,0], color = 'b', alpha = 0.2)
-    plt.xlabel('Modified Julian Days')
-    plt.ylabel('Timing Residuals (Sec)')
+    plt.plot(mjdinfer, ypredict, 'k-')
+    plt.fill_between(xnew[:,0], Llim[:,0], Ulim[:,0], color = 'k', alpha = 0.2)
+    plt.xlabel('Modified Julian Days', fontsize=16)
+    plt.ylabel('Timing Residuals (Sec)', fontsize=16)
     ax.xaxis.set_visible(False)
+    ax.grid()
+    plt.ylim(-0.12,0.09)
     ax=fig.add_subplot(2,1,2)
     plt.plot(xtraining, resid_resid,'k-')
-    plt.errorbar(xtraining, resid_resid, yerr=resid_resid_err, fmt='o') 
+    plt.errorbar(xtraining, resid_resid, yerr=resid_resid_err, fmt='.',color = 'k') 
     ax.grid()
-    plt.xlabel('Modified Julian Days')
-    plt.ylabel('Data - Model (Sec)')
+    plt.xlabel('Modified Julian Days', fontsize=16)
+    plt.ylabel('Data - Model (Sec)', fontsize=16)
     #x1,x2,y1,y2 = plt.axis()
     #plt.axis((x1,x2,np.min(Llim), np.max(Ulim)))
+    plt.subplots_adjust(hspace=0.1)
     plt.savefig('./{0}/residuals.png'.format(pulsar))
     plt.clf()
 #    plt.plot(mjdinfer30, nudot, 'r+')
@@ -217,10 +243,10 @@ if (args.diagnosticplots):
 
 
 
-model.constrain_bounded('rbf_1_lengthscale', rbf1s, rbf1e)
-model.constrain_bounded('rbf_2_lengthscale', rbf2s, rbf2e)
-model.constrain_bounded('noise_variance', 0,TOAerror*TOAerror)
-#model.constrain_fixed('rbf_2_variance',0)
-model.optimize()
-model.optimize_restarts(num_restarts = 10)
-print "MODEL FOR PULSAR",pulsar, model
+# model.constrain_bounded('rbf_1_lengthscale', rbf1s, rbf1e)
+# model.constrain_bounded('rbf_2_lengthscale', rbf2s, rbf2e)
+# model.constrain_bounded('noise_variance', 0,TOAerror*TOAerror)
+# #model.constrain_fixed('rbf_2_variance',0)
+# model.optimize()
+# model.optimize_restarts(num_restarts = 10)
+# print "MODEL FOR PULSAR",pulsar, model
