@@ -82,9 +82,10 @@ inferredarray = np.zeros((bins, profilesinfer))
 inferredvar = np.zeros((bins, profilesinfer))
 
 # Run through each bin, train a GP and infer at chosen interval
+#if filename[-8:-4] == 'norm':
 
-if not (os.path.exists('./{0}/bins/'.format(pulsar))):
-    os.mkdir('./{0}/bins/'.format(pulsar))  
+if not (os.path.exists('./{0}/{1}_bins/'.format(pulsar,outfile))):
+    os.mkdir('./{0}/{1}_bins/'.format(pulsar,outfile))  
 
 for i in range(bins):
     ytraining=difference[i,:]
@@ -99,7 +100,7 @@ for i in range(bins):
     plt.fill_between(mjdinfer, Llim, Ulim, color = 'b', alpha = 0.2)
     x1,x2,y1,y2 = plt.axis()
     plt.axis((x1,x2,mindifference,maxdifference))
-    plt.savefig('./{0}/bins/bin{1}.png'.format(pulsar,int(i+leftbin)))
+    plt.savefig('./{0}/{1}_bins/bin{2}.png'.format(pulsar,outfile,int(i+leftbin)))
     plt.clf()
         
 inferredarray = inferredarray/noiserms
