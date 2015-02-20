@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import scipy.spatial as sp
 import math
 import os
+import scipy.signal as ss
 
 def SE(X1, X2, amp, length, white_noise = False):
         '''
@@ -234,7 +235,7 @@ def binstartend(data,peakoriginal,rms):
 def gpinferred(xtraining, ytraining, xnew, rmsnoise):
     # choose RBF (Gaussian) model
     kernel1 = GPy.kern.Matern32(1)
-    kernel2 = GPy.kern.rbf(1)
+    kernel2 = GPy.kern.RBF(1)
     kernel3 = GPy.kern.white(1)
     kernel = kernel1 + kernel3
     # build model
@@ -242,12 +243,11 @@ def gpinferred(xtraining, ytraining, xnew, rmsnoise):
     ytraining = ytraining.reshape(ytraining.shape[0],1)
     xnew = xnew.reshape(xnew.shape[0],1)
     model = GPy.models.GPRegression(xtraining,ytraining,kernel, normalize_X=False)
-#    model.constrain_bounded('rbf_lengthscale', 100, 300)
-    model.constrain_bounded('Mat32_lengthscale', 15, 300)
+    model.Mat32.lengthscale.constrain_bounded(15, 300)
     model.optimize()
     model.optimize_restarts(num_restarts = 5)
     print model
-    yp, yp_var, a, b = model.predict(xnew)  # GP at xtraining points for outlier detection
+    yp, yp_var = model.predict(xnew)  # GP at xtraining points for outlier detection
     return np.array(yp.T), np.array(yp_var.T)
 
 def makemap(data, myvmin, myvmax, xaxis, yaxis, xlines, xlabel, ylabel, title, outfile, peakline=None, combined=None):
@@ -419,3 +419,28 @@ def combined_map(zoom_region_no,data_norm,data_not, myvmin_norm, myvmax_norm, my
     cb2.update_ticks()
 
     plt.savefig('./{0}/{0}_final_{1}.png'.format(pulsar,zoom_region_no))
+
+def autocorr(rr,plotname):
+	# Compute autocorrelation function of residuals to test if it is white noise
+	autocorr = np.correlate(rr,rr, mode='full')
+	datapoints = rr.shape[0] 
+	print datapoints
+	smoothac = ss.savgol_filter(autocorr[datapoints+1:],11, 3)
+	previous = 1000000
+	zerocrossing = 0
+	i=0
+	point = np.zeros(4)
+	while zerocrossing < 3 and i<datapoints:
+		if (smoothac[i]*previous < 0):
+			zerocrossing += 1
+			point[zerocrossing] = i
+			print "acc an", zerocrossing, i 
+		previous = smoothac[i]
+		i+=1
+	plt.plot(smoothac[0:10*point[3]])
+	plt.savefig(plotname)
+	plt.clf()
+	peak = 0.5*(point[3]-point[2])+point[2]
+	noise = np.std(autocorr[-50:])
+	snr = smoothac[int(peak)]/noise
+	return peak, snr

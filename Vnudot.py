@@ -42,7 +42,18 @@ rbf1e = args.rbf1[1]
 rbf2s = args.rbf2[0]
 rbf2e = args.rbf2[1]
 
-residuals = np.loadtxt(filename)
+residtmp = np.loadtxt(filename)
+# Read residuals with one day minimum distance
+comparison = residtmp[0,0]
+rowstodelete = []
+for i in range(1, residtmp.shape[0]):
+    if residtmp[i,0] < comparison + 1:
+        rowstodelete.append(i)
+    else:
+        comparison = residtmp[i,0]
+
+residuals = np.delete(residtmp, rowstodelete, axis=0)
+
 # epoch and nudot
 q = open(parfile)
 for line in q:
@@ -62,6 +73,7 @@ mjd = residuals[:,0] + epoch
 mjdfirst = mjd[0]
 mjdlast = mjd[-1]
 xtraining = mjd
+
 ytraining = residuals[:,1]
 meanerror = np.std(residuals[:,1])
 TOAerror = np.median(residuals[:,2])
@@ -69,8 +81,8 @@ mjdinfer = np.arange(int(mjdfirst), int(mjdlast), 1)
 mjdinfer30 = np.arange(int(mjdfirst), int(mjdlast), nudot_infer)
 # Train a Gaussian process on the residuals
 
-kernel1 = GPy.kern.rbf(1)
-kernel2 = GPy.kern.rbf(1)
+kernel1 = GPy.kern.RBF(1)
+kernel2 = GPy.kern.RBF(1)
 kernel = kernel1+kernel2
 
 
@@ -78,16 +90,15 @@ xtraining1 = xtraining.reshape(xtraining.shape[0],1)
 ytraining1 = ytraining.reshape(ytraining.shape[0],1)
 xnew = mjdinfer.reshape(mjdinfer.shape[0],1)
 xnew30 = mjdinfer30.reshape(mjdinfer30.shape[0],1)
-model = GPy.models.GPRegression(xtraining1,ytraining1,kernel, normalize_X=False)
-model.constrain_bounded('rbf_1_lengthscale', rbf1s, rbf1e)
-model.constrain_bounded('rbf_2_lengthscale', rbf2s, rbf2e)
-model.constrain_bounded('noise_variance', 0,TOAerror*TOAerror)
-#model.constrain_fixed('rbf_2_variance',0)
+model = GPy.models.GPRegression(xtraining1,ytraining1,kernel)
+model.add.rbf_1.lengthscale.constrain_bounded(rbf1s, rbf1e)
+model.add.rbf_2.lengthscale.constrain_bounded(rbf2s, rbf2e)
+#model.Gaussian_noise.variance.constrain_bounded(0,5*TOAerror*TOAerror)
 model.optimize()
 model.optimize_restarts(num_restarts = 10)
 print "MODEL FOR PULSAR",pulsar, model
-ypredict, yvariance, a, b = model.predict(xnew)
-ymodel, yvarmodel, a1, b1 = model.predict(xtraining1)
+ypredict, yvariance = model.predict(xnew)
+ymodel, yvarmodel = model.predict(xtraining1)
 
 
 # Compute residuals at training points
@@ -113,27 +124,13 @@ plt.plot(autocorr[autocorr.shape[0]/2:])
 plt.xlabel('Lag')
 plt.ylabel('Autocorrelation')
 plt.savefig('{0}_ac2kern_100_1000.png' .format(pulsar))
-#sys.exit()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 Ulim = ypredict + 2*np.sqrt(yvariance)
 Llim = ypredict - 2*np.sqrt(yvariance)
 
 # Now use the Gaussian Process to obtain the derivatives, i.e. nudot
-par = np.zeros(2)
+parA = np.zeros(2)
+parB = np.zeros(2)
 K1 = kernel.K(xtraining1, xtraining1)
 K1invOut = GPy.util.linalg.pdinv(np.matrix(K1))
 K1inv = K1invOut[1]
@@ -144,15 +141,15 @@ Y_TRAINING = np.matrix(np.array(ytraining.flatten())).T
 
 # First lengthscale kernel
 CovFunc = Vf.DKD
-par[0] = model['rbf_1_variance'] # use the optimized amplitude
-par[1] = model['rbf_1_lengthscale'] # use the optimized lengthscale
-K_prime = CovFunc(XPREDICT, X_TRAINING, par) # training points
-K_prime_p = 3*par[0]/par[1]**4 # These are the diagonal elements of the variance
+parA[0] = model['add.rbf_1.variance'] # use the optimized amplitude
+parA[1] = model['add.rbf_1.lengthscale'] # use the optimized lengthscale
+K_prime = CovFunc(XPREDICT, X_TRAINING, parA) # training points
+K_prime_p = 3*parA[0]/parA[1]**4 # These are the diagonal elements of the variance
 # Second lengthscale kernel
-par[0] = model['rbf_2_variance'] # use the optimized amplitude
-par[1] = model['rbf_2_lengthscale'] # use the optimized lengthscale
-K_prime += CovFunc(XPREDICT, X_TRAINING, par) # training points
-K_prime_p += 3*par[0]/par[1]**4 # These are the diagonal elements of the variance
+parB[0] = model['add.rbf_2.variance'] # use the optimized amplitude
+parB[1] = model['add.rbf_2.lengthscale'] # use the optimized lengthscale
+K_prime += CovFunc(XPREDICT, X_TRAINING, parB) # training points
+K_prime_p += 3*parB[0]/parB[1]**4 # These are the diagonal elements of the variance
 
 
 # Now work out nudot and errors
@@ -232,3 +229,27 @@ if (args.diagnosticplots):
     plt.subplots_adjust(hspace=0)
     plt.savefig('./{0}/nudot.png'.format(pulsar))
     plt.clf()
+    # loggrid = np.zeros((30,40))
+    # for i in range(0,30):
+    #     k = 30 + 10*i
+    #     model.add.rbf_1.lengthscale.constrain_fixed(k)
+    #     for j in range(0,30):
+    #         l = 330 + j*20
+    #         model.add.rbf_2.lengthscale.constrain_fixed(l)
+    #         model.optimize()
+    #         model.optimize_restarts(num_restarts = 2)
+    #         loggrid[i,j] = model.log_likelihood()
+    # np.unravel_index(loggrid.argmax(), loggrid.shape)
+    # plt.pcolormesh(loggrid)
+    # plt.set_cmap('jet')
+    # plt.colorbar()
+#    plt.savefig('./{0}/prob.png'.format(pulsar))
+#    plt.clf()
+    # k1 = GPy.kern.RBF(1)
+    # model1 = GPy.models.GPRegression(xtraining1,ytraining1,k1)
+    # rbf1D = np.zeros(50)
+    # for i in range(0,50):
+    #     ii = 30 + 20*i
+    #     model1.rbf.lengthscale.constrain_fixed(ii)
+    #     model1.optimize()
+    #     rbf1D[i]=model1.log_likelihood()
