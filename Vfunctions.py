@@ -236,8 +236,9 @@ def gpinferred(xtraining, ytraining, xnew, rmsnoise):
     # choose RBF (Gaussian) model
     kernel1 = GPy.kern.Matern32(1)
     kernel2 = GPy.kern.RBF(1)
-    kernel3 = GPy.kern.white(1)
-    kernel = kernel1 + kernel3
+    kernel3 = GPy.kern.White(1)
+    kernel = kernel1 
+#   + kernel3
     # build model
     xtraining = xtraining.reshape(xtraining.shape[0],1)
     ytraining = ytraining.reshape(ytraining.shape[0],1)
