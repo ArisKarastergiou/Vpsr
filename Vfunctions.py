@@ -243,7 +243,7 @@ def gpinferred(xtraining, ytraining, xnew, rmsnoise):
     xtraining = xtraining.reshape(xtraining.shape[0],1)
     ytraining = ytraining.reshape(ytraining.shape[0],1)
     xnew = xnew.reshape(xnew.shape[0],1)
-    model = GPy.models.GPRegression(xtraining,ytraining,kernel, normalize_X=False)
+    model = GPy.models.GPRegression(xtraining,ytraining,kernel)
     model.Mat32.lengthscale.constrain_bounded(15, 300)
     model.optimize()
     model.optimize_restarts(num_restarts = 5)
