@@ -11,13 +11,14 @@ import operator as op
 # FREQUENTLY CHANGED VARIABLES
 ####################################################
     
-secs_bet_nucheck = dc.Decimal(3600.0) # seconds between nu value being updated. more often is more accurate
+secs_bet_nucheck = dc.Decimal('3600.0') # seconds between nu value being updated. more often is more accurate
 days_bet_test = dc.Decimal('1.0') # days between the mode having the opportunity to switch
-days_bet_measures = dc.Decimal('30.0') # days between measurement of nu dot and mode fraction
-days_of_obs = dc.Decimal('1000.0') # days of overall duration of experiment
+secs_bet_test = dc.Decimal('3600.0') # days between the mode having the opportunity to switch
+days_bet_measures = dc.Decimal('15.0') # days between measurement of nu dot and mode fraction
+days_of_obs = dc.Decimal('800.0') # days of overall duration of experiment
 
-test_fraction = dc.Decimal('.5')
-nudot_2_fact = dc.Decimal('0.01')
+test_fraction = 0.7
+nudot_2_fact = dc.Decimal('0.1')
 
 ####################################################
 
@@ -40,7 +41,7 @@ two = dc.Decimal('2.0')
 one = dc.Decimal('1.0')
 four = dc.Decimal('4.0')
 secs_in_day = dc.Decimal('86400.0')
-secs_bet_test = days_bet_test*secs_in_day
+#secs_bet_test = days_bet_test*secs_in_day
 secs_bet_measures = days_bet_measures*secs_in_day
 nudot_1 = nudot_init
 nudot_2 = nudot_1 + nudot_1*nudot_2_fact
@@ -55,7 +56,8 @@ residuals = []
 toa_days = []
 phi_last = []
 noise_sd = 1e-4
-
+rate = []
+rate.append(test_fraction)
 ####################################################
 
 dc.setcontext(dc.Context(prec=100))
@@ -79,12 +81,6 @@ phi_test.append(dc.Decimal(0.0))
 toa_no_noise.append(dc.Decimal(0.0))
 toa_no_noise_days.append(toa_no_noise[-1]/secs_in_day)
 
-# create noise for toa[0]
-
-#noise = np.random.normal(0,noise_sd,1)
-#noise = dc.Decimal(noise[0])
-#toa.append(noise)
-
 # First value of nu and nudot
 nu.append(dc.Decimal(nu_init))
 nudot.append(dc.Decimal(nudot_init))
@@ -94,7 +90,8 @@ length_nu = 0
 
 # j is the index of the output TOA
 for j in range(days_of_obs/days_bet_measures):
-
+    count_nudot_tests = 0
+    count_nudot1 = 0
 # i is the index of time intervals within a TOA interval
     for i in range (int(secs_bet_measures/secs_bet_nucheck)):
         
@@ -112,14 +109,21 @@ for j in range(days_of_obs/days_bet_measures):
 # Check if update to nudot is necessary
         test_rand = np.random.uniform(0,1,1)
 
-        if (np.mod(secs_bet_nucheck*(i+1), secs_bet_test)==0) and test_rand[0] > test_fraction:
-            nudot.append(nudot_2)
-            print 'Changed nudot'
-        else:
-            nudot.append(nudot_1)
+        if (np.mod(secs_bet_nucheck*(i+1), secs_bet_test)==0):
+            count_nudot_tests += 1.0
+#            if test_rand[0] > test_fraction - 0.1 * np.sin(j/24.*2.*3.1415):
+#            if test_rand[0] > test_fraction - 0.1 * j:
+            if test_rand[0] > test_fraction - np.random.normal(0,0.1,1):
+                count_nudot1 +=1.0
+                nudot.append(nudot_2)
+                print 'Changed nudot'
+            else:
+                nudot.append(nudot_1)
 
 # end of i for loop
 # now get x toas at this moment = time + (1-phase_decimal)/nu
+
+    rate.append(count_nudot1/(count_nudot_tests))
     num_toas = 5
     for k in range(-num_toas, 0):
         time = (j+1) * secs_bet_measures + (k+1)*secs_bet_nucheck 
@@ -137,7 +141,10 @@ for j in range(days_of_obs/days_bet_measures):
 #obs_code = [' @']*len(toa_no_noise)
 #fakefile = [' mode_code.rf']*len(toa_no_noise)
 obs_freq = [430.000]*len(toa_no_noise)
-uncert = [0.00000]*len(toa_no_noise)
+uncert = [100.00000]*len(toa_no_noise)
+noise = np.random.normal(0,1e-4,len(toa_no_noise))
+for i in range(len(toa_no_noise)):
+    toa_no_noise[i] += dc.Decimal(noise[i])
 width = [10.00000]*len(toa_no_noise)
 
 for i in range(len(toa_no_noise)):
@@ -146,6 +153,7 @@ for i in range(len(toa_no_noise)):
 
 np.savetxt('./sim_toas_no_noise.txt',toa_no_noise)
 np.savetxt('./residuals.txt',residuals)
+np.savetxt('./rates.txt',rate)
 #np.savetxt('./sim_toas_no_noise_days.txt',toa_no_noise_days)
 #np.savetxt('./sim_toas_no_noise_days.txt',np.vstack((obs_code,obs_freq,toa_no_noise_days,width,uncert)).T,fmt=['%s              ','%.3f ','%.14f ','%.4f              ','%.5f'])
 with open('./sim_toas_no_noise_days.txt', 'wb') as f:
