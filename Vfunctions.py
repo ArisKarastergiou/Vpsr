@@ -37,7 +37,7 @@ def forpaper(pulsar,profile1, profile2, median, yllim=None, yulim=None):
     plt.clf()
 
 
-def makeplots(pulsar, data, mjd, dir, allbins, template=None, yllim=None, yulim=None, peakindex=None):
+def makeplots(pulsar, data, mjd, dir, allbins, template=None, yllim=None, yulim=None, peakindex=None,cal=None):
     nbins = data.shape[0]
     nprofiles = data.shape[1]
     xaxis = np.linspace(0,float(nbins)/allbins,nbins)
@@ -54,17 +54,22 @@ def makeplots(pulsar, data, mjd, dir, allbins, template=None, yllim=None, yulim=
 	    plt.vlines(np.argmax(template),yllim,yulim,linestyles='dotted')
         if yllim !=None or yulim !=None:
             plt.ylim(yllim,yulim)
-        plt.ylabel(r'Intensity (mJy)',fontsize=14)
+	if cal == None:
+		plt.ylabel(r'Normalised Flux Density',fontsize=14)
+#		plt.yticks([])
+	else:
+		plt.ylabel(r'Flux Density (mJy)',fontsize=14)
+
 	plt.xlabel(r'Fraction of Pulse Period',fontsize=14)
 	plt.xticks(xlocs,xticklabels)
-	plt.suptitle('{0}'.format(mjd[i]), fontsize=14, fontweight='bold')
+#	plt.suptitle('{0}'.format(mjd[i]), fontsize=14, fontweight='bold')
         plt.savefig('./{0}/{1}/{2}_{3}.png' .format(pulsar,dir,int(math.floor(mjd[i])),i))
         plt.clf()
 
 
 
 
-def goodplots_ip(pulsar, data_mp, data_ip, mjd, dir, allbins, startbin, template_mp, template_ip, yllim, yulim, peakindex):
+def goodplots_ip(pulsar, data_mp, data_ip, mjd, dir, allbins, startbin, template_mp, template_ip, yllim, yulim, peakindex, cal=None):
     if not (os.path.exists('./{0}/{1}'.format(pulsar,dir))):
         os.mkdir('./{0}/{1}'.format(pulsar,dir))
     nprofiles = data_mp.shape[1]
@@ -93,16 +98,20 @@ def goodplots_ip(pulsar, data_mp, data_ip, mjd, dir, allbins, startbin, template
         plt.ylim(yllim,yulim)
         plt.vlines(np.argmax(template_mp),yllim,yulim,linestyles='dotted')
 	plt.xlabel(r'Fraction of Pulse Period',fontsize=14)
-        plt.ylabel(r'Intensity (mJy)',fontsize=14)
-
+        if cal == None:
+                plt.ylabel(r'Normalised Flux Density',fontsize=14)
+                plt.yticks([])
+        else:
+                plt.ylabel(r'Flux Density (mJy)',fontsize=14)
         ax_ip=fig.add_subplot(1,2,2)
         plt.plot(data_ip[:,i])
         plt.plot(template_ip,'r')
 	plt.xticks(xlocs_ip,xticklabels_ip)
         plt.ylim(yllim,yulim)
 	plt.xlabel(r'Fraction of Pulse Period',fontsize=14)
+	plt.yticks([])
 
-        plt.suptitle('{0}'.format(mjd[i]), fontsize=14, fontweight='bold')
+        #plt.suptitle('{0}'.format(mjd[i]), fontsize=14, fontweight='bold')
         plt.savefig('./{0}/{1}/{2}_{3}.png' .format(pulsar,dir,int(math.floor(mjd[i])),i))
         plt.clf()
 
@@ -119,7 +128,7 @@ def aligndata(baselineremoved, brightest, pulsar):
     newtemplate = np.roll(template, fixedlag)
     template = newtemplate
     plt.plot(newtemplate)
-    plt.savefig('./{0}/{0}_template.png' .format(pulsar))
+    plt.savefig('./{0}/{0}_brightest.png' .format(pulsar))
     plt.clf()
     for i in range(nprofiles):
         xcorr = np.correlate(template,baselineremoved[:,i],"full")
@@ -198,8 +207,8 @@ def binstartend(data,peakoriginal,rms):
     peakbin = np.argmax(data)
     bins = data.shape[0]
     window = bins/20
-    print peak, peakbin, rms
-    print 'peak snr is',peak/rms
+ #   print peak, peakbin, rms
+ #   print 'peak snr is',peak/rms
     peaksnr = peak/rms
     power = peaksnr
     peaks = 0
@@ -244,12 +253,12 @@ def gpinferred(xtraining, ytraining, xnew, rmsnoise):
     ytraining = ytraining.reshape(ytraining.shape[0],1)
     xnew = xnew.reshape(xnew.shape[0],1)
     model = GPy.models.GPRegression(xtraining,ytraining,kernel)
-    model.Mat32.lengthscale.constrain_bounded(15, 300)
+    model.Mat32.lengthscale.constrain_bounded(1,300)
     model.optimize()
-    model.optimize_restarts(num_restarts = 5)
+    model.optimize_restarts(num_restarts = 10)
     print model
     yp, yp_var = model.predict(xnew)  # GP at xtraining points for outlier detection
-    return np.array(yp.T), np.array(yp_var.T)
+    return np.array(yp.T), np.array(yp_var.T), model
 
 def makemap(data, myvmin, myvmax, xaxis, yaxis, xlines, xlabel, ylabel, title, outfile, peakline=None, combined=None):
     if combined == None:
@@ -267,7 +276,7 @@ def makemap(data, myvmin, myvmax, xaxis, yaxis, xlines, xlabel, ylabel, title, o
 
     plt.ylabel(ylabel,fontsize=16)
     plt.xlabel(xlabel,fontsize=16)
-    plt.suptitle(title,fontsize=16)
+#    plt.suptitle(title,fontsize=16)
     xlocs = np.arange(xbins,step = 500)
     xticklabels = []
     for i in xlocs:
@@ -277,11 +286,13 @@ def makemap(data, myvmin, myvmax, xaxis, yaxis, xlines, xlabel, ylabel, title, o
     if peakline!=None:
         plt.hlines(peakline,0,xbins)
     
-    ylocs = np.arange(ybins,step = 30)
+#    ylocs = np.arange(ybins,step = 30)
+    ylocs = np.linspace(0,ybins,10)
     yticklabels = []
-    for i in ylocs:
-        yticklabels.append(round(yaxis[i],3))
-    plt.yticks(ylocs,yticklabels)
+#    for i in ylocs:
+#        print "KEK",yaxis.shape
+#       yticklabels.append(round(yaxis[i],3))
+#    plt.yticks(ylocs,yticklabels)
     if combined == None:
         plt.colorbar(orientation="vertical")
         plt.savefig(outfile)
@@ -314,6 +325,8 @@ def norm_to_peak(data,peakbin):
 # Produces a plot with non-normalised variabiliy map, normalised variability map and spindown rate
 
 def combined_map(zoom_region_no,data_norm,data_not, myvmin_norm, myvmax_norm, myvmin_not,myvmax_not, xaxis, yaxis, xlines_norm, xlines_not, nudot, errorbars, mjdinferspindown, xlabel, ylabel,pulsar, peakline=None):
+
+    print "COMBINED"
 
     fig=plt.figure()
     fig.set_size_inches(16,10)
@@ -391,15 +404,16 @@ def combined_map(zoom_region_no,data_norm,data_not, myvmin_norm, myvmax_norm, my
     ax=fig.add_subplot(3,1,3)
 
     power = int((-1)*np.floor(math.log10(abs(np.median(nudot)))))
-    nudot = nudot*10**power
+    #nudot = nudot*10**power
     #spinllim = spinllim*10**power
     #spinulim = spinulim*10**power
-    errorbars = errorbars*10**power
+    #errorbars = errorbars*10**power
 
     ax.grid()
     print 'mjdinferspindwon and nudot', mjdinferspindown.shape,nudot.shape 
 #    plt.plot(mjdinferspindown, nudot)
-    plt.errorbar(mjdinferspindown[100:-3], nudot[100:-3], yerr=errorbars[100:-3],linestyle='-')
+    plt.errorbar(mjdinferspindown, nudot, yerr=errorbars,linestyle='-')
+#    plt.errorbar(mjdinferspindown[100:-3], nudot[100:-3], yerr=errorbars[100:-3],linestyle='-')
 #    plt.fill_between(mjdinferspindown, spinllim, spinulim, color = 'b', alpha = 0.2)
     plt.xlim(xaxis[0],xaxis[-1])
     start_mjd_diff = int(abs(xaxis[0]-mjdinferspindown[0]))

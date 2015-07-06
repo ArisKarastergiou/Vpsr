@@ -15,6 +15,8 @@ import Vfunctions as Vf
 import os 
 from os.path import basename
 import sys
+import os.path
+pb.ioff()
 
 # Read command line arguments
 parser = argparse.ArgumentParser(description='Pulsar profile variability studies using GPs')
@@ -37,8 +39,11 @@ interval = args.interval
 data = np.loadtxt(filename)
 
 data = data/100
-mjd = np.loadtxt('./{0}/mjd.txt'.format(pulsar))
-mjdremoved = np.loadtxt('./{0}/mjdremoved.txt'.format(pulsar))
+if os.path.exists('./{0}/mjd.txt'.format(pulsar)):
+    mjd = np.loadtxt('./{0}/mjd.txt'.format(pulsar))
+if os.path.exists('./{0}/mjd_norm.txt'.format(pulsar)):
+    mjd = np.loadtxt('./{0}/mjd_norm.txt'.format(pulsar))
+#mjdremoved = np.loadtxt('./{0}/mjdremoved.txt'.format(pulsar))
 readbins = np.loadtxt('./{0}/{1}'.format(pulsar,datfile))
 leftbin = readbins[0]
 rightbin = readbins[1]
@@ -52,6 +57,7 @@ print "-----"
 print "-----"
 
 print bins,profiles, np.std(data[0:20,:]), np.std(data[bins-21:-1,:])
+print 'size',data.shape
 # find properties of noise, assuming data have been prepared using Valign
 noiserms = np.mean((np.std(data[0:20,:]), np.std(data[bins-21:-1,:])))
 print 'RMS of the noise is:', noiserms 
@@ -60,7 +66,7 @@ print 'RMS of the noise is:', noiserms
 #data = data/noiserms
 
 # build template model to subtract
-template = np.mean(data,1)
+template = np.median(data,1)
 
 # create difference data
 difference = np.zeros((bins,profiles))
@@ -69,10 +75,10 @@ for i in range(profiles):
     
 maxdifference = np.amax(difference)
 mindifference = np.amin(difference)
-limitdifference = np.max((maxdifference, np.abs(mindifference)))
+#limitdifference = np.max((maxdifference, np.abs(mindifference)))
 
 # mjds for inference
-print 'MJD', mjd[0], mjd[-1]
+#print 'MJD', mjd[0], mjd[-1]
 mjdinfer = np.arange(mjd[0],mjd[-1],interval)
 profilesinfer = mjdinfer.shape[0]
 Llim = np.zeros(profilesinfer)
@@ -89,16 +95,15 @@ if not (os.path.exists('./{0}/{1}_bins/'.format(pulsar,outfile))):
 
 for i in range(bins):
     ytraining=difference[i,:]
-    inferredarray[i,:], inferredvar[i,:] = Vf.gpinferred(xtraining, ytraining, mjdinfer, noiserms)
+    inferredarray[i,:], inferredvar[i,:], model_params = Vf.gpinferred(xtraining, ytraining, mjdinfer, noiserms)
     Ulim[:] = inferredarray[i,:] + 2 * np.sqrt(inferredvar[i,:])
     Llim[:] = inferredarray[i,:] - 2 * np.sqrt(inferredvar[i,:])
     print "********** GP operating on bin",i+1,"of",bins,"for pulsar",pulsar,"**********"
-
-
     plt.plot(xtraining, difference[i,:],'r.')
     plt.plot(mjdinfer, inferredarray[i,:], 'b-')
     plt.fill_between(mjdinfer, Llim, Ulim, color = 'b', alpha = 0.2)
     x1,x2,y1,y2 = plt.axis()
+#    plt.text(55000,0.005,'{0}' .format(model_params),fontsize=8)
     plt.axis((x1,x2,mindifference,maxdifference))
     plt.savefig('./{0}/{1}_bins/bin{2}.png'.format(pulsar,outfile,int(i+leftbin)))
     plt.clf()
@@ -129,3 +134,6 @@ np.savetxt(outputfile, inferredvar)
 f = open('./{0}/{0}_outfile.dat' .format(pulsar), 'w')
 f.write(outfile)
 f.close()
+
+firstmjd = [mjd[0]]
+np.savetxt('./{0}/first_emission_mjd.txt' .format(pulsar), firstmjd)
