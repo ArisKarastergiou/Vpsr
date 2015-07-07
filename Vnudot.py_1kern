@@ -27,6 +27,7 @@ parser.add_argument('-e','--parfile', help='ephemeris for nudot', required=True)
 parser.add_argument('-p','--pulsar', help='Pulsar name', required=True)
 parser.add_argument('-d','--diagnosticplots', help='make image plots', action='store_true')
 parser.add_argument('-r1','--rbf1', nargs=2 ,default = (30,1000), help='lengthscale boundaries 1', type = float, required = False)
+parser.add_argument('-toae','--toae', nargs=1 ,default = -1.0, help='toa error', type = float, required = False)
 #parser.add_argument('-r2','--rbf2', nargs=2 ,default = (100, 1000),help='lengthscale boundaries 2', type = float, required = False)
 #------------------------------
 
@@ -39,6 +40,7 @@ datfile = outfile + '.dat'
 pulsar = args.pulsar
 rbf1s = args.rbf1[0]
 rbf1e = args.rbf1[1]
+TOAerror = args.toae[0]
 #print rbf1s,rbf1e
 #rbf2s = args.rbf2[0]
 #rbf2e = args.rbf2[1]
@@ -77,7 +79,8 @@ xtraining = mjd
 
 ytraining = residuals[:,1]
 meanerror = np.std(residuals[:,1])
-TOAerror = np.median(residuals[:,2])
+if TOAerror == -1.0 :
+    TOAerror = np.median(residuals[:,2])
 mjdinfer = np.arange(int(mjdfirst), int(mjdlast), 1)
 #mjdinfer30 = np.arange(int(mjdfirst), int(mjdlast), nudot_infer)
 # Train a Gaussian process on the residuals
@@ -94,15 +97,15 @@ xnew = mjdinfer.reshape(mjdinfer.shape[0],1)
 #xnew30 = mjdinfer30.reshape(mjdinfer30.shape[0],1)
 model = GPy.models.GPRegression(xtraining1,ytraining1,kernel)
 print model,rbf1s,rbf1e
-model.add.rbf_1.lengthscale.constrain_bounded(rbf1s, rbf1e)
+model.rbf.lengthscale.constrain_bounded(rbf1s, rbf1e)
 #model.constrain_bounded('rbf_lengthscale', rbf1s, rbf1e)
 model.Gaussian_noise.variance.constrain_bounded(0,5*TOAerror*TOAerror)
 #model.constrain_bounded('noise_variance', 0,5*TOAerror*TOAerror)
 model.optimize()
 model.optimize_restarts(num_restarts = 10)
 print "MODEL FOR PULSAR",pulsar, model
-ypredict, yvariance, a, b = model.predict(xnew)
-ymodel, yvarmodel, a1, b1 = model.predict(xtraining1)
+ypredict, yvariance = model.predict(xnew)
+ymodel, yvarmodel = model.predict(xtraining1)
 
 # Compute residuals at training points
 #resid_resid = np.array(ymodel - ytraining1)
@@ -145,8 +148,8 @@ Y_TRAINING = np.matrix(np.array(ytraining.flatten())).T
 
 # First lengthscale kernel
 CovFunc = Vf.DKD
-par[0] = model['add.rbf_1.variance'] # use the optimized amplitude
-par[1] = model['add.rbf_1.lengthscale'] # use the optimized lengthscale
+par[0] = model['rbf.variance'] # use the optimized amplitude
+par[1] = model['rbf.lengthscale'] # use the optimized lengthscale
 K_prime = CovFunc(XPREDICT, X_TRAINING, par) # training points
 K_prime_p = 3*par[0]/par[1]**4 # These are the diagonal elements of the variance
 # Second lengthscale kernel
