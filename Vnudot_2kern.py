@@ -28,7 +28,7 @@ parser.add_argument('-p','--pulsar', help='Pulsar name', required=True)
 parser.add_argument('-d','--diagnosticplots', help='make image plots', action='store_true')
 parser.add_argument('-r1','--rbf1', nargs=2 ,default = (30,100), help='lengthscale boundaries 1', type = float, required = False)
 parser.add_argument('-r2','--rbf2', nargs=2 ,default = (100, 1000),help='lengthscale boundaries 2', type = float, required = False)
-parser.add_argument('-toae','--toae', nargs=1 ,default = -1.0, help='toa error', type = float, required = False)
+parser.add_argument('-toae','--toae' ,default = -1.0, help='toa error', type = float, required = False)
 #------------------------------
 
 args = parser.parse_args()
@@ -42,7 +42,7 @@ rbf1s = args.rbf1[0]
 rbf1e = args.rbf1[1]
 rbf2s = args.rbf2[0]
 rbf2e = args.rbf2[1]
-TOAerror = args.toae[0]
+TOAerror = args.toae
 residtmp = np.loadtxt(filename)
 # Read residuals with one day minimum distance
 comparison = residtmp[0,0]
