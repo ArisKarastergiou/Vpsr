@@ -1,4 +1,6 @@
 #!/bin/bash
+# script used for running multiple files through Vpsr code
+# use with care, i.e. fear!
 for i in `ls -1 data_grids/*1024.txt`
 do
     pulsar=${i:11:9}; echo $pulsar;
