@@ -44,6 +44,10 @@ rbf2s = args.rbf2[0]
 rbf2e = args.rbf2[1]
 TOAerror = args.toae
 residtmp = np.loadtxt(filename)
+
+if not (os.path.exists('./{0}/'.format(pulsar))):
+    os.mkdir('./{0}/'.format(pulsar))
+
 # Read residuals with one day minimum distance
 comparison = residtmp[0,0]
 rowstodelete = []
