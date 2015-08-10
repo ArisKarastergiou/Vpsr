@@ -48,13 +48,15 @@ residtmp = np.loadtxt(filename)
 comparison = residtmp[0,0]
 rowstodelete = []
 for i in range(1, residtmp.shape[0]):
-    if residtmp[i,0] < comparison + 1:
+    if residtmp[i,0] < comparison + 30.0:
         rowstodelete.append(i)
     else:
         comparison = residtmp[i,0]
 
 residuals = np.delete(residtmp, rowstodelete, axis=0)
 
+#print residuals
+#sys.exit()
 # epoch and nudot
 q = open(parfile)
 for line in q:
@@ -126,8 +128,8 @@ ymodel, yvarmodel = model.predict(xtraining1)
 #plt.ylabel('Autocorrelation')
 #plt.savefig('{0}_ac2kern_100_1000.png' .format(pulsar))
 
-Ulim = ypredict + 2*np.sqrt(yvariance)
-Llim = ypredict - 2*np.sqrt(yvariance)
+Ulim = ypredict + 2*np.sqrt(np.abs(yvariance))
+Llim = ypredict - 2*np.sqrt(np.abs(yvariance))
 
 # Now use the Gaussian Process to obtain the derivatives, i.e. nudot
 parA = np.zeros(2)
@@ -163,13 +165,14 @@ nudot = np.array(nudot0  + np.dot(KiKx.T, Y_TRAINING)/period/(86400)**2)
 #Kxx = self.kern.Kdiag(_Xnew, which_parts=which_parts)
 #var = Kxx - np.sum(np.multiply(KiKx, Kx), 0)
 #var = var[:, None]
-nudot_err = np.array(np.sqrt(K_prime_p - np.sum(np.multiply(KiKx, K_prime.T),0).T)/(86400)**2)
+nudot_err = np.array(np.sqrt(np.abs(K_prime_p - np.sum(np.multiply(KiKx, K_prime.T),0).T))/(86400.)**2)
 print "Average nudot error is:", np.mean(nudot_err)
+print "Median toa error:", np.median(residuals[:,2]), np.median(residuals[:,2])*np.median(residuals[:,2])
 
 # Limits of nudot plot
 Ulim2 = np.array(nudot + 2*nudot_err)
 Llim2 = np.array(nudot - 2*nudot_err)
-errorbars = np.array(2*nudot_err)
+errorbars = np.array(5*nudot_err)
 
 # Write outputs
 outputfile = '{0}/{0}_nudot.dat' .format(pulsar)
@@ -191,7 +194,7 @@ np.savetxt(outputfile, xtraining)
 
 #print ymodel.shape, ytraining.shape
 resid_resid = ymodel -ytraining1
-resid_resid_err = 2 * np.sqrt(yvarmodel)
+resid_resid_err = 2 * np.sqrt(np.abs(yvarmodel))
 
 # Make plots
 if (args.diagnosticplots):

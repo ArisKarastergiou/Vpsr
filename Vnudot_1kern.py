@@ -79,6 +79,7 @@ xtraining = mjd
 
 ytraining = residuals[:,1]
 meanerror = np.std(residuals[:,1])
+print "Median toa error:", np.median(residuals[:,2])
 if TOAerror == -1.0 :
     TOAerror = np.median(residuals[:,2])
 mjdinfer = np.arange(int(mjdfirst), int(mjdlast), 1)
