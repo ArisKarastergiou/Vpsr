@@ -45,6 +45,9 @@ TOAerror = args.toae
 #rbf2s = args.rbf2[0]
 #rbf2e = args.rbf2[1]
 
+if not (os.path.exists('./{0}/'.format(pulsar))):
+    os.mkdir('./{0}/'.format(pulsar))
+
 residtmp = np.loadtxt(filename)
 # Read residuals with one day minimum distance
 comparison = residtmp[0,0]
