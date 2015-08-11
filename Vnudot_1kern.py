@@ -200,7 +200,8 @@ np.savetxt(outputfile, xtraining)
 #     resid_resid.append(ytraining[i]-ypredict[idx])
 
 resid_resid = ymodel -ytraining1
-resid_resid_err = 2 * np.sqrt(yvarmodel)
+resid_resid_err = residuals[:,2]
+#2 * np.sqrt(yvarmodel)
 
 # Make plots
 if (args.diagnosticplots):

@@ -12,6 +12,7 @@ import GPy
 import math
 import matplotlib
 import matplotlib.pyplot as plt
+import pylab
 import scipy as sc
 import scipy.signal as ss
 import sys
@@ -26,6 +27,7 @@ parser.add_argument('-f','--filename', help='File containing residuals', require
 parser.add_argument('-e','--parfile', help='ephemeris for nudot', required=True)
 parser.add_argument('-p','--pulsar', help='Pulsar name', required=True)
 parser.add_argument('-d','--diagnosticplots', help='make image plots', action='store_true')
+parser.add_argument('-pr','--probplot', help='make probability plots', action='store_true')
 parser.add_argument('-r1','--rbf1', nargs=2 ,default = (30,100), help='lengthscale boundaries 1', type = float, required = False)
 parser.add_argument('-r2','--rbf2', nargs=2 ,default = (100, 1000),help='lengthscale boundaries 2', type = float, required = False)
 parser.add_argument('-toae','--toae' ,default = -1.0, help='toa error', type = float, required = False)
@@ -52,7 +54,7 @@ if not (os.path.exists('./{0}/'.format(pulsar))):
 comparison = residtmp[0,0]
 rowstodelete = []
 for i in range(1, residtmp.shape[0]):
-    if residtmp[i,0] < comparison + 30.0:
+    if residtmp[i,0] < comparison + 10.0:
         rowstodelete.append(i)
     else:
         comparison = residtmp[i,0]
@@ -91,7 +93,7 @@ mjdinfer = np.arange(int(mjdfirst), int(mjdlast), 1)
 
 kernel1 = GPy.kern.RBF(1)
 kernel2 = GPy.kern.RBF(1)
-kernel = kernel1+kernel2
+kernel = kernel1+kernel2#+GPy.kern.White(1)
 
 xtraining1 = xtraining.reshape(xtraining.shape[0],1)
 ytraining1 = ytraining.reshape(ytraining.shape[0],1)
@@ -159,24 +161,45 @@ K_prime += CovFunc(XPREDICT, X_TRAINING, parB) # training points
 K_prime_p += 3*parB[0]/parB[1]**4 # These are the diagonal elements of the variance
 
 
+CovFunc2 = Vf.TKD # for nu double dot
+# Just use the longest timescale for nu2dot
+#if parA[1]<parB[1]:
+#    parA[1] = parB[1]
+#    parA[0] = parB[0]
+K_prime2 = CovFunc2(XPREDICT, X_TRAINING, parA) # training points
+K_prime_p2 = 15*parA[0]/parA[1]**6 # These are the diagonal elements of the variance
+K_prime2 += CovFunc2(XPREDICT, X_TRAINING, parA) # training points
+K_prime_p2 += 15*parB[0]/parB[1]**6 # These are the diagonal elements of the variance
+
 # Now work out nudot and errors
 KiKx, _ = GPy.util.linalg.dpotrs(K1inv, np.asfortranarray(K_prime.T), lower = 1)
+KiKx2, _ = GPy.util.linalg.dpotrs(K1inv, np.asfortranarray(K_prime2.T), lower = 1)
 #-------
 #mu = np.dot(KiKx.T, self.likelihood.Y)
 nudot = np.array(nudot0  + np.dot(KiKx.T, Y_TRAINING)/period/(86400)**2)
+nu2dot = np.array(np.dot(KiKx2.T, Y_TRAINING)/period/(86400)**3)
 #-------
 
 #Kxx = self.kern.Kdiag(_Xnew, which_parts=which_parts)
 #var = Kxx - np.sum(np.multiply(KiKx, Kx), 0)
 #var = var[:, None]
 nudot_err = np.array(np.sqrt(np.abs(K_prime_p - np.sum(np.multiply(KiKx, K_prime.T),0).T))/(86400.)**2)
+nu2dot_err = np.array(np.sqrt(np.abs(K_prime_p2 - np.sum(np.multiply(KiKx2, K_prime2.T),0).T))/(86400.)**3)
 print "Average nudot error is:", np.mean(nudot_err)
-print "Median toa error:", np.median(residuals[:,2]), np.median(residuals[:,2])*np.median(residuals[:,2])
+print "The model predicts sigma TOA of:", np.sqrt(model['Gaussian_noise.variance'])
+print "The data claim a median sigma TOA of:", np.median(residuals[:,2])
+
+br_index = nu2dot/nudot**2/period
 
 # Limits of nudot plot
 Ulim2 = np.array(nudot + 2*nudot_err)
 Llim2 = np.array(nudot - 2*nudot_err)
 errorbars = np.array(5*nudot_err)
+
+# Limits of nu2dot plot
+Ulim2n = np.array(nu2dot + 2*nu2dot_err)
+Llim2n = np.array(nu2dot - 2*nu2dot_err)
+errorbars = np.array(5*nu2dot_err)
 
 # Write outputs
 outputfile = '{0}/{0}_nudot.dat' .format(pulsar)
@@ -198,7 +221,44 @@ np.savetxt(outputfile, xtraining)
 
 #print ymodel.shape, ytraining.shape
 resid_resid = ymodel -ytraining1
-resid_resid_err = 2 * np.sqrt(np.abs(yvarmodel))
+resid_resid_err = residuals[:,2]
+# 2 * np.sqrt(np.abs(yvarmodel))
+
+if (args.probplot):
+    start=50
+    end=1000
+    step = 50
+    dims = int((end-start)/step)+1
+    loggrid = np.zeros((dims,dims))
+    iaxis = 0
+    jaxis = 0
+    xtraining1 = xtraining.reshape(xtraining.shape[0],1)
+    ytraining1 = ytraining.reshape(ytraining.shape[0],1)
+    for i in np.arange(start,end,step):
+        for j in np.arange(i,end,step):
+            k1 = GPy.kern.RBF(1)
+            k2 = GPy.kern.RBF(1)
+            k3 = k1 + k2
+            m3 = GPy.models.GPRegression(xtraining1,ytraining1,k3)
+            m3.add.rbf_1.lengthscale.constrain_fixed(float(i))
+            m3.add.rbf_2.lengthscale.constrain_fixed(float(j))
+            m3.optimize()
+            print iaxis,jaxis,m3
+#            model.optimize_restarts(num_restarts = 5)
+            loggrid[iaxis,jaxis] = float(m3.log_likelihood())
+            del m3, k1, k2, k3
+            jaxis += 1
+        iaxis += 1
+        jaxis = iaxis
+        
+    print "maximum at:", np.unravel_index(loggrid.argmax(), loggrid.shape), np.max(loggrid)
+    plt.pcolormesh(loggrid,vmin=np.max(loggrid) - 100.)
+#    plt.axis([start, end, start, end])
+    plt.set_cmap('Blues')
+    plt.colorbar()
+    plt.savefig('./{0}/prob.png'.format(pulsar))
+    plt.clf()
+
 
 # Make plots
 if (args.diagnosticplots):
@@ -241,22 +301,27 @@ if (args.diagnosticplots):
     plt.subplots_adjust(hspace=0)
     plt.savefig('./{0}/nudot.png'.format(pulsar))
     plt.clf()
-    # loggrid = np.zeros((30,40))
-    # for i in range(0,30):
-    #     k = 30 + 10*i
-    #     model.add.rbf_1.lengthscale.constrain_fixed(k)
-    #     for j in range(0,30):
-    #         l = 330 + j*20
-    #         model.add.rbf_2.lengthscale.constrain_fixed(l)
-    #         model.optimize()
-    #         model.optimize_restarts(num_restarts = 2)
-    #         loggrid[i,j] = model.log_likelihood()
-    # np.unravel_index(loggrid.argmax(), loggrid.shape)
-    # plt.pcolormesh(loggrid)
-    # plt.set_cmap('jet')
-    # plt.colorbar()
-#    plt.savefig('./{0}/prob.png'.format(pulsar))
-#    plt.clf()
+
+    y=np.squeeze(br_index)
+    ye=np.squeeze(2*nu2dot_err)
+#    print "SIZE OF X Y YE",x.shape,y.shape,ye.shape
+    plt.errorbar(x[3:-3], y[3:-3], yerr=ye[3:-3],linestyle='-')
+    plt.xlabel('MJD of Simulation')
+    plt.ylabel(r'$\mathrm{{\dot{{\nu}}}}$ ($\mathrm{{s^{{-2}}}}$)')
+    plt.subplots_adjust(hspace=0)
+    plt.savefig('./{0}/brindex.png'.format(pulsar))
+    plt.clf()
+
+    y=np.squeeze(nu2dot)
+    ye=np.squeeze(2*nu2dot_err)
+#    print "SIZE OF X Y YE",x.shape,y.shape,ye.shape
+    plt.errorbar(x[3:-3], y[3:-3], yerr=ye[3:-3],linestyle='-')
+    plt.xlabel('MJD of Simulation')
+    plt.ylabel(r'$\mathrm{{\dot{{\nu}}}}$ ($\mathrm{{s^{{-2}}}}$)')
+    plt.subplots_adjust(hspace=0)
+    plt.savefig('./{0}/nu2dot.png'.format(pulsar))
+    plt.clf()
+
     # k1 = GPy.kern.RBF(1)
     # model1 = GPy.models.GPRegression(xtraining1,ytraining1,k1)
     # rbf1D = np.zeros(50)
