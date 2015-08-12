@@ -304,12 +304,23 @@ def DKD(X1, X2, theta):
     
     D2 = sp.distance.cdist(X1, X2, 'sqeuclidean') # calculate squared Euclidean distance
     D1 = np.zeros((X1.shape[0],X2.shape[0]))
+#    for i in range(X1.shape[0]):
+#        for j in range(X2.shape[0]):
+#            D1[i,j] = X1[i] - X2[j]
+# This is my second derivative of the SE kernel after the two differentiation calcs
+    K = theta[0] * np.exp(- D2 / (2*(theta[1]**2))) * ( theta[1]**2 - D2) / theta[1]**4
+    return np.matrix(K)
+def TKD(X1, X2, theta):
+
+    X1, X2 = np.matrix(X1), np.matrix(X2) # ensure both sets of inputs are matrices
+    
+    D2 = sp.distance.cdist(X1, X2, 'sqeuclidean') # calculate squared Euclidean distance
+    D1 = np.zeros((X1.shape[0],X2.shape[0]))
     for i in range(X1.shape[0]):
         for j in range(X2.shape[0]):
-            D1[i,j] = X1[i] - X2[j]
+            D1[i,j] = -(X1[i] - X2[j])
 # This is my second derivative of the SE kernel after the two differentiation calcs
-    K = (theta[0]/(theta[1]**2)) * np.exp(- D2 / (2*(theta[1]**2))) * (1 - D2/(theta[1]**2)) 
-
+    K = theta[0] * D1 * np.exp(- D2 / (2*(theta[1]**2))) * ( 3 * theta[1]**2 - D2) / theta[1]**6
     return np.matrix(K)
 
 # Normalises the data to the peak
