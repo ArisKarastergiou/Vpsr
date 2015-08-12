@@ -18,6 +18,7 @@ import sys
 import Vfunctions as Vf
 import os 
 from os.path import basename
+from numpy.random import normal
 
 # Read command line arguments
 #------------------------------
@@ -111,6 +112,12 @@ print "MODEL FOR PULSAR",pulsar, model
 ypredict, yvariance = model.predict(xnew)
 ymodel, yvarmodel = model.predict(xtraining1)
 
+f = open('model_params_1.txt','a')
+f.write('{0}_1kern\n{1}' .format(pulsar,model))
+f.close()
+
+
+
 # Compute residuals at training points
 #resid_resid = np.array(ymodel - ytraining1)
 #resid_resid_err = 2 * np.sqrt(yvarmodel)
@@ -199,11 +206,12 @@ np.savetxt(outputfile, xtraining)
 #     idx = np.argmin(np.abs(mjdinfer - xtraining[i]))
 #     resid_resid.append(ytraining[i]-ypredict[idx])
 
-resid_resid = ymodel -ytraining1
-resid_resid_err = residuals[:,2]
+resid_resid = (ymodel -ytraining1)*1000
+resid_resid_err = residuals[:,2]*1000
 #2 * np.sqrt(yvarmodel)
 
 # Make plots
+
 if (args.diagnosticplots):
     fig=plt.figure()
     fig.set_size_inches(16,10)
@@ -217,6 +225,8 @@ if (args.diagnosticplots):
     ax.grid()
     plt.ylim(np.min(ypredict),np.max(ypredict))
     ax=fig.add_subplot(2,1,2)
+
+    
     plt.plot(xtraining, resid_resid,'k-')
     plt.errorbar(xtraining, resid_resid, yerr=resid_resid_err, fmt='.',color = 'k') 
     ax.grid()
@@ -225,8 +235,16 @@ if (args.diagnosticplots):
     #x1,x2,y1,y2 = plt.axis()
     #plt.axis((x1,x2,np.min(Llim), np.max(Ulim)))
     plt.ylim(np.min((resid_resid)-(2*resid_resid_err)),np.max((resid_resid)+(2*resid_resid_err)))
+
+    a = plt.axes([.65, .4, .2, .2])                                                      
+    n, bins, patches = plt.hist(resid_resid,50, color='k')                                          
+    plt.xlabel("Model - Data (mS)")                                                      
+    plt.ylabel("Frequency")
+
+    fig.text(0.7, 0.2, 'Noise: {0:.2}' .format(model[2]), ha='center', va='center', size=16)
+
     plt.subplots_adjust(hspace=0.1)
-    plt.savefig('./{0}/residuals.png'.format(pulsar))
+    plt.savefig('./{0}/residuals_1kern.png'.format(pulsar))
     plt.clf()
 #    plt.plot(mjdinfer30, nudot, 'r+')
 #    x1,x2,y1,y2 = plt.axis()
@@ -240,7 +258,7 @@ if (args.diagnosticplots):
     plt.xlabel('MJD of Simulation')			
     plt.ylabel(r'$\mathrm{{\dot{{\nu}}}}$ ($\mathrm{{s^{{-2}}}}$)')
     plt.subplots_adjust(hspace=0)
-    plt.savefig('./{0}/nudot.png'.format(pulsar))
+    plt.savefig('./{0}/nudot_1kern.png'.format(pulsar))
     plt.clf()
 # model.constrain_bounded('rbf_1_lengthscale', rbf1s, rbf1e)
 # model.constrain_bounded('rbf_2_lengthscale', rbf2s, rbf2e)
