@@ -28,8 +28,8 @@ parser.add_argument('-e','--parfile', help='ephemeris for nudot', required=True)
 parser.add_argument('-p','--pulsar', help='Pulsar name', required=True)
 parser.add_argument('-d','--diagnosticplots', help='make image plots', action='store_true')
 parser.add_argument('-pr','--probplot', help='make probability plots', action='store_true')
-parser.add_argument('-r1','--rbf1', nargs=2 ,default = (30,100), help='lengthscale boundaries 1', type = float, required = False)
-parser.add_argument('-r2','--rbf2', nargs=2 ,default = (100, 1000),help='lengthscale boundaries 2', type = float, required = False)
+parser.add_argument('-r1','--rbf1', nargs=2 ,default = (30,1000), help='lengthscale boundaries 1', type = float, required = False)
+parser.add_argument('-r2','--rbf2', nargs=2 ,default = (30,1000),help='lengthscale boundaries 2', type = float, required = False)
 parser.add_argument('-toae','--toae' ,default = -1.0, help='toa error', type = float, required = False)
 #------------------------------
 
@@ -108,6 +108,10 @@ model.optimize_restarts(num_restarts = 10)
 print "MODEL FOR PULSAR",pulsar, model
 ypredict, yvariance = model.predict(xnew)
 ymodel, yvarmodel = model.predict(xtraining1)
+
+f = open('model_params_2.txt','a')
+f.write('{0}_2kern\n{1}' .format(pulsar,model))
+f.close()
 
 
 # Compute residuals at training points
@@ -220,8 +224,8 @@ np.savetxt(outputfile, xtraining)
 #     resid_resid.append(ytraining[i]-ypredict[idx])
 
 #print ymodel.shape, ytraining.shape
-resid_resid = ymodel -ytraining1
-resid_resid_err = residuals[:,2]
+resid_resid = (ymodel -ytraining1)*1000
+resid_resid_err = residuals[:,2]*1000
 # 2 * np.sqrt(np.abs(yvarmodel))
 
 if (args.probplot):
@@ -282,8 +286,16 @@ if (args.diagnosticplots):
     #x1,x2,y1,y2 = plt.axis()
     #plt.axis((x1,x2,np.min(Llim), np.max(Ulim)))
     plt.ylim(np.min((resid_resid)-(2*resid_resid_err)),np.max((resid_resid)+(2*resid_resid_err)))
+
+    a = plt.axes([.65, .4, .2, .2])
+    n, bins, patches = plt.hist(resid_resid,50, color='k')
+    plt.xlabel("Model - Data (mS)")
+    plt.ylabel("Frequency")
+    fig.text(0.7, 0.2, 'Noise: {0:.2}' .format(model[2]), ha='center', va='center', size=16)
+
+
     plt.subplots_adjust(hspace=0.1)
-    plt.savefig('./{0}/residuals.png'.format(pulsar))
+    plt.savefig('./{0}/residuals_2kern.png'.format(pulsar))
     plt.close()
 #    plt.plot(mjdinfer30, nudot, 'r+')
 #    x1,x2,y1,y2 = plt.axis()
@@ -299,7 +311,7 @@ if (args.diagnosticplots):
     plt.xlabel('MJD of Simulation')
     plt.ylabel(r'$\mathrm{{\dot{{\nu}}}}$ ($\mathrm{{s^{{-2}}}}$)')
     plt.subplots_adjust(hspace=0)
-    plt.savefig('./{0}/nudot.png'.format(pulsar))
+    plt.savefig('./{0}/nudot_2kern.png'.format(pulsar))
     plt.clf()
 
     y=np.squeeze(br_index)
