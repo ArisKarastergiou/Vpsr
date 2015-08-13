@@ -110,7 +110,7 @@ ypredict, yvariance = model.predict(xnew)
 ymodel, yvarmodel = model.predict(xtraining1)
 
 f = open('model_params_2.txt','a')
-f.write('{0}_2kern\n{1}' .format(pulsar,model))
+f.write('{0}_2kern {1:.3e} {2:.2f} {3:.3e} {4:.2f} {5:.3e}\n' .format(pulsar,model[0],model[1],model[2],model[3],model[4]))
 f.close()
 
 
@@ -148,7 +148,7 @@ K1 = kernel.K(xtraining1, xtraining1)
 K1invOut = GPy.util.linalg.pdinv(np.matrix(K1))
 K1inv = K1invOut[1]
 X_TRAINING = np.matrix([xtraining]).T
-#XPREDICT = np.matrix([mjdinfer30]).T
+#XPREDICT = np.matrix([mjdinfer]).T
 XPREDICT = X_TRAINING
 Y_TRAINING = np.matrix(np.array(ytraining.flatten())).T
 
@@ -198,12 +198,12 @@ br_index = nu2dot/nudot**2/period
 # Limits of nudot plot
 Ulim2 = np.array(nudot + 2*nudot_err)
 Llim2 = np.array(nudot - 2*nudot_err)
-errorbars = np.array(5*nudot_err)
+errorbars = np.array(2*nudot_err)
 
 # Limits of nu2dot plot
 Ulim2n = np.array(nu2dot + 2*nu2dot_err)
 Llim2n = np.array(nu2dot - 2*nu2dot_err)
-errorbars = np.array(5*nu2dot_err)
+#errorbars = np.array(5*nu2dot_err)
 
 # Write outputs
 outputfile = '{0}/{0}_nudot.dat' .format(pulsar)
@@ -272,8 +272,8 @@ if (args.diagnosticplots):
     plt.plot(xtraining, ytraining,'r.')
     plt.plot(mjdinfer, ypredict, 'k-')
     plt.fill_between(xnew[:,0], Llim[:,0], Ulim[:,0], color = 'k', alpha = 0.2)
-    plt.xlabel('Modified Julian Days', fontsize=16)
-    plt.ylabel('Timing Residuals (Sec)', fontsize=16)
+    plt.xlabel('Modified Julian Date', fontsize=16)
+    #plt.ylabel('Timing Residuals (Sec)', fontsize=16)
     ax.xaxis.set_visible(False)
     ax.grid()
     plt.ylim(np.min(ypredict),np.max(ypredict))
@@ -281,18 +281,22 @@ if (args.diagnosticplots):
     plt.plot(xtraining, resid_resid,'k-')
     plt.errorbar(xtraining, resid_resid, yerr=resid_resid_err, fmt='.',color = 'k')
     ax.grid()
-    plt.xlabel('Modified Julian Days', fontsize=16)
-    plt.ylabel('Data - Model (Sec)', fontsize=16)
+    plt.xlabel('Modified Julian Date', fontsize=16)
+    #plt.ylabel('Data - Model (mS)', fontsize=16)
     #x1,x2,y1,y2 = plt.axis()
     #plt.axis((x1,x2,np.min(Llim), np.max(Ulim)))
     plt.ylim(np.min((resid_resid)-(2*resid_resid_err)),np.max((resid_resid)+(2*resid_resid_err)))
 
-    a = plt.axes([.65, .4, .2, .2])
-    n, bins, patches = plt.hist(resid_resid,50, color='k')
-    plt.xlabel("Model - Data (mS)")
-    plt.ylabel("Frequency")
-    fig.text(0.7, 0.2, 'Noise: {0:.2}' .format(model[2]), ha='center', va='center', size=16)
+# makes histogram of data - model values
 
+    # a = plt.axes([.65, .4, .2, .2])
+    # n, bins, patches = plt.hist(resid_resid,50, color='k')
+    # plt.xlabel("Data - Model (mS)")
+    # plt.ylabel("Frequency")
+    # fig.text(0.7, 0.2, 'GP Noise Variance: {0:.3e}' .format(model[4]), ha='center', va='center', size=16)
+    fig.text(0.06, 0.72, 'Timing Residuals (s)', ha='center', va='center',rotation='vertical', size=16)
+    fig.text(0.06, 0.3, 'Data - Model (ms)', ha='center', va='center', rotation='vertical', size=16)
+    ax.xaxis.labelpad = 20
 
     plt.subplots_adjust(hspace=0.1)
     plt.savefig('./{0}/residuals_2kern.png'.format(pulsar))
@@ -303,7 +307,7 @@ if (args.diagnosticplots):
 #    plt.fill_between(xnew30[30:-30,0], Llim2[30:-30,0], Ulim2[30:-30,0], color = 'b', alpha = 0.2)
 #    plt.fill_between(xtraining1[3:-3,0], Llim2[3:-3,0], Ulim2[3:-3,0], color = 'b', alpha = 0.2)
     x=np.squeeze(xtraining1)
-#    x=np.squeeze(mjdinfer30)
+#    x=np.squeeze(mjdinfer)
     y=np.squeeze(nudot)
     ye=np.squeeze(2*nudot_err)
 #    print "SIZE OF X Y YE",x.shape,y.shape,ye.shape
