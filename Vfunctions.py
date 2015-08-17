@@ -7,7 +7,7 @@ import scipy.spatial as sp
 import math
 import os
 import scipy.signal as ss
-
+import sys
 def SE(X1, X2, amp, length, white_noise = False):
         '''
         Squared exponential covariance function
@@ -59,7 +59,7 @@ def makeplots(pulsar, data, mjd, dir, allbins, template=None, yllim=None, yulim=
 #		plt.yticks([])
 	else:
 		plt.ylabel(r'Flux Density (mJy)',fontsize=14)
-
+	plt.xlim(0,data.shape[0])
 	plt.xlabel(r'Fraction of Pulse Period',fontsize=14)
 	plt.xticks(xlocs,xticklabels)
 #	plt.suptitle('{0}'.format(mjd[i]), fontsize=14, fontweight='bold')
@@ -177,11 +177,11 @@ def removebaseline(data, outliers):
     outlierindex = []
     inlierindex = []
     for i in range(nprofiles):
-        if smallestrms[i]/np.max(data[:,i]) > outliers * medianrms/medianpeak:
+	    if smallestrms[i]/np.max(data[:,i]) > outliers * medianrms/medianpeak:
 #        if smallestrms[i] > outliers * medianrms or smallestrms[i] * outliers < medianrms or np.min(baselineremoved[:,i]) < - 5 * smallestrms[i]:
-            outlierindex.append(i)
-        else:
-            inlierindex.append(i)
+		    outlierindex.append(i)
+	    else:
+		    inlierindex.append(i)
 
     ou = np.array(outlierindex)
     inl = np.array(inlierindex)
@@ -241,7 +241,7 @@ def binstartend(data,peakoriginal,rms):
     return start, end, peaks, cuttemplate
 
 
-def gpinferred(xtraining, ytraining, xnew, rmsnoise):
+def gpinferred(xtraining, ytraining, xnew):
     # choose RBF (Gaussian) model
     kernel1 = GPy.kern.Matern32(1)
     kernel2 = GPy.kern.RBF(1)
@@ -253,7 +253,7 @@ def gpinferred(xtraining, ytraining, xnew, rmsnoise):
     ytraining = ytraining.reshape(ytraining.shape[0],1)
     xnew = xnew.reshape(xnew.shape[0],1)
     model = GPy.models.GPRegression(xtraining,ytraining,kernel)
-    model.Mat32.lengthscale.constrain_bounded(1,300)
+    model.Mat32.lengthscale.constrain_bounded(30,300)
     model.optimize()
     model.optimize_restarts(num_restarts = 10)
     print model
@@ -304,32 +304,51 @@ def DKD(X1, X2, theta):
     
     D2 = sp.distance.cdist(X1, X2, 'sqeuclidean') # calculate squared Euclidean distance
     D1 = np.zeros((X1.shape[0],X2.shape[0]))
+#    for i in range(X1.shape[0]):
+#        for j in range(X2.shape[0]):
+#            D1[i,j] = X1[i] - X2[j]
+# This is my second derivative of the SE kernel after the two differentiation calcs
+    K = theta[0] * np.exp(- D2 / (2*(theta[1]**2))) * ( theta[1]**2 - D2) / theta[1]**4
+    return np.matrix(K)
+
+def TKD(X1, X2, theta):
+
+    X1, X2 = np.matrix(X1), np.matrix(X2) # ensure both sets of inputs are matrices
+    
+    D2 = sp.distance.cdist(X1, X2, 'sqeuclidean') # calculate squared Euclidean distance
+    D1 = np.zeros((X1.shape[0],X2.shape[0]))
     for i in range(X1.shape[0]):
         for j in range(X2.shape[0]):
-            D1[i,j] = X1[i] - X2[j]
+            D1[i,j] = -(X1[i] - X2[j])
 # This is my second derivative of the SE kernel after the two differentiation calcs
-    K = (theta[0]/(theta[1]**2)) * np.exp(- D2 / (2*(theta[1]**2))) * (1 - D2/(theta[1]**2)) 
-
+    K = theta[0] * D1 * np.exp(- D2 / (2*(theta[1]**2))) * ( 3 * theta[1]**2 - D2) / theta[1]**6
     return np.matrix(K)
 
 # Normalises the data to the peak
 
-def norm_to_peak(data,peakbin):
+def norm_to_peak(data,onpulsedata):
+	
+	
 
     profiles = data.shape[1]
 
     for i in range(profiles):
-            data[:,i]/=np.mean(data[peakbin-5:peakbin+5,i])
+#            data[:,i]/=np.mean(data[peakbin-5:peakbin+5,i])
+	    data[:,i]/=np.mean(onpulsedata[:,i])
     return data
-
 # Produces a plot with non-normalised variabiliy map, normalised variability map and spindown rate
 
 def combined_map(zoom_region_no,data_norm,data_not, myvmin_norm, myvmax_norm, myvmin_not,myvmax_not, xaxis, yaxis, xlines_norm, xlines_not, nudot, errorbars, mjdinferspindown, xlabel, ylabel,pulsar, peakline=None):
 
-    print "COMBINED"
+    import matplotlib as mpl
+    label_size = 14
+    mpl.rcParams['xtick.labelsize'] = label_size
+    mpl.rcParams['ytick.labelsize'] = label_size
+	
 
     fig=plt.figure()
     fig.set_size_inches(16,10)
+
     ax=fig.add_subplot(3,1,1)
     ax.xaxis.set_visible(False)
 
@@ -345,8 +364,8 @@ def combined_map(zoom_region_no,data_norm,data_not, myvmin_norm, myvmax_norm, my
 #            if xlinesremoved[i]-xaxis[0] >= 0:
 #                plt.vlines(xlinesremoved[i]-xaxis[0],0,ybins,linestyles='dotted', color = "r")
 
-    plt.ylabel(ylabel,fontsize=16)
-    plt.xlabel(xlabel,fontsize=16)
+#    plt.ylabel(ylabel,fontsize=18)
+    plt.xlabel(xlabel,fontsize=18)
 #    plt.suptitle(title,fontsize=16)
     xlocs = np.arange(xbins,step = 500)
     xticklabels = []
@@ -357,17 +376,20 @@ def combined_map(zoom_region_no,data_norm,data_not, myvmin_norm, myvmax_norm, my
     if peakline!=None:
         plt.hlines(peakline,0,xbins)
     
-    ylocs = np.arange(ybins,step = 30)
+#    ylocs = np.arange(ybins,step = int(data_norm.shape[0]/4.1))
+
+    ylocs = np.linspace(0,ybins-1,num = 5)
     yticklabels = []
+    print yaxis.shape, ylocs.shape
     for i in ylocs:
-        yticklabels.append(round(yaxis[i],3))
+        yticklabels.append(round(yaxis[i],2))
     plt.yticks(ylocs,yticklabels)
 
 
-    cbaxes1 = fig.add_axes([0.65, 0.645, 0.25, 0.01])
+    cbaxes1 = fig.add_axes([0.6, 0.645, 0.30, 0.01])
     cb1 = plt.colorbar(cax = cbaxes1,orientation="horizontal")
     cb1.update_ticks()
-
+    cb1.ax.tick_params(labelsize=12)
     ax=fig.add_subplot(3,1,2)
     ax.xaxis.set_visible(False)
 
@@ -382,8 +404,8 @@ def combined_map(zoom_region_no,data_norm,data_not, myvmin_norm, myvmax_norm, my
 #            if xlinesremoved[i]-xaxis[0] >= 0:
 #                plt.vlines(xlinesremoved[i]-xaxis[0],0,ybins,linestyles='dotted', color = "r")
 
-    plt.ylabel(ylabel,fontsize=16)
-    plt.xlabel(xlabel,fontsize=16)
+#    plt.ylabel(ylabel,fontsize=18)
+    plt.xlabel(xlabel,fontsize=18)
  #   plt.suptitle(title,fontsize=16)
     xlocs = np.arange(xbins,step = 500)
     xticklabels = []
@@ -394,43 +416,64 @@ def combined_map(zoom_region_no,data_norm,data_not, myvmin_norm, myvmax_norm, my
     if peakline!=None:
         plt.hlines(peakline,0,xbins)
     
-    ylocs = np.arange(ybins,step = 30)
+#    ylocs = np.arange(ybins,step = int(data_norm.shape[0]/4.1))
+    ylocs = np.linspace(0,ybins-1,num = 5) 
     yticklabels = []
     for i in ylocs:
-        yticklabels.append(round(yaxis[i],3))
+        yticklabels.append(round(yaxis[i],2))
     plt.yticks(ylocs,yticklabels)
 
 
     ax=fig.add_subplot(3,1,3)
 
     power = int((-1)*np.floor(math.log10(abs(np.median(nudot)))))
-    #nudot = nudot*10**power
+
+    nudot = nudot*10**power
     #spinllim = spinllim*10**power
     #spinulim = spinulim*10**power
-    #errorbars = errorbars*10**power
+
+    errorbars = errorbars*10**power
 
     ax.grid()
-    print 'mjdinferspindwon and nudot', mjdinferspindown.shape,nudot.shape 
 #    plt.plot(mjdinferspindown, nudot)
-    plt.errorbar(mjdinferspindown, nudot, yerr=errorbars,linestyle='-')
-#    plt.errorbar(mjdinferspindown[100:-3], nudot[100:-3], yerr=errorbars[100:-3],linestyle='-')
+#    plt.errorbar(mjdinferspindown, nudot, yerr=errorbars,linestyle='-')
+    plt.errorbar(mjdinferspindown[3:-3], nudot[3:-3], yerr=errorbars[3:-3],linestyle='-')
 #    plt.fill_between(mjdinferspindown, spinllim, spinulim, color = 'b', alpha = 0.2)
     plt.xlim(xaxis[0],xaxis[-1])
-    start_mjd_diff = int(abs(xaxis[0]-mjdinferspindown[0]))
-    end_mjd_diff = int(abs(xaxis[-1]-mjdinferspindown[-1]))
-    if end_mjd_diff == 0:
-	    end_mjd_diff = 1
-    #        plt.ylim(np.median(nudot)-2*np.std(nudot),np.median(nudot)+2*np.std(nudot))
-#    plt.ylim(np.min(spinllim[start_mjd_diff+100:-end_mjd_diff-100]),np.max(spinulim[start_mjd_diff+100:-end_mjd_diff-100]))
+    #start_mjd_diff = int(abs(xaxis[0]-mjdinferspindown[0]))
+    #end_mjd_diff = int(abs(xaxis[-1]-mjdinferspindown[-1]))
+    #if end_mjd_diff == 0:
+	   # end_mjd_diff = 1
+    #plt.ylim(np.median(nudot)-2*np.std(nudot),np.median(nudot)+2*np.std(nudot))
+
+# Make the y limits based on which nudot values are visible on plot, i.e. between mjdinferspindown[3:-3]
+
+    nudot_visible = []
+
+    for i in range(nudot.shape[0]):
+	    if i > 3 and i < nudot.shape[0]-3 and mjdinferspindown[i] > xaxis[0] and mjdinferspindown[i] < xaxis[-1]:
+		    nudot_visible.append(nudot[i])
+        
+    diff_ymin_ymax = np.max(nudot_visible)-np.min(nudot_visible)
+
+    plt.ylim(np.min(nudot_visible)-0.1*diff_ymin_ymax,np.max(nudot_visible)+0.05*diff_ymin_ymax)
 
 
-    plt.xlabel('MJD')
-    plt.ylabel(r'$\mathrm{{\dot{{\nu}}}}$ ($\mathrm{{10^{{-{0}}} s^{{-2}}}}$)'.format(power) ,fontsize=16)
+    fig.text(0.05, 0.777, 'Fraction of\nPulse Period', ha='center', va='center', rotation='vertical', size=18)
+    fig.text(0.05, 0.503, 'Fraction of\nPulse Period', ha='center', va='center', rotation='vertical', size=18)
+    fig.text(0.05, 0.23, r'$\mathrm{{\dot{{\nu}}}}$ ($\mathrm{{10^{{-{0}}} s^{{-2}}}}$)'.format(power), ha='center', va='center', rotation='vertical',size=18)
+
+
+    plt.xlabel(xlabel,fontsize=18)
+#    plt.ylabel(r'$\mathrm{{\dot{{\nu}}}}$ ($\mathrm{{10^{{-{0}}} s^{{-2}}}}$)'.format(power) ,fontsize=18)
+    ax.xaxis.labelpad = 20
     y_formatter = matplotlib.ticker.ScalarFormatter(useOffset=False)
+    plt.locator_params(axis = 'y', nbins=5)
     ax.yaxis.set_major_formatter(y_formatter)
     plt.subplots_adjust(hspace=0.1)
-    cbaxes2 = fig.add_axes([0.65, 0.37, 0.25, 0.01])
+    cbaxes2 = fig.add_axes([0.60, 0.37, 0.3, 0.01])
     cb2 = plt.colorbar(cax = cbaxes2,orientation="horizontal")
+    cb2.ax.tick_params(labelsize=12) 
     cb2.update_ticks()
 
     plt.savefig('./{0}/{0}_final_{1}.png'.format(pulsar,zoom_region_no))
