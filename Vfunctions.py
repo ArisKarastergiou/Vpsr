@@ -1,4 +1,4 @@
-# Functions for V code
+# A growing collection of functions for V code
 import numpy as np
 import GPy
 import matplotlib
