@@ -3,7 +3,6 @@
 # Reads in a file of residuals and the nudot used to produce it and
 # produces a smooth nudot vs time array and plot
 
-
 import argparse
 import pylab as pb
 pb.ion()
@@ -61,9 +60,6 @@ for i in range(1, residtmp.shape[0]):
 
 residuals = np.delete(residtmp, rowstodelete, axis=0)
 
-#print residuals
-#sys.exit()
-# epoch and nudot
 q = open(parfile)
 for line in q:
     if line.startswith('F0'):
@@ -88,55 +84,28 @@ meanerror = np.std(residuals[:,1])
 if TOAerror == -1.0:
     TOAerror = np.median(residuals[:,2])
 mjdinfer = np.arange(int(mjdfirst), int(mjdlast), 1)
-#mjdinfer30 = np.arange(int(mjdfirst), int(mjdlast), nudot_infer)
-# Train a Gaussian process on the residuals
 
+# Train a Gaussian process on the residuals
 kernel1 = GPy.kern.RBF(1)
 kernel2 = GPy.kern.RBF(1)
-kernel = kernel1+kernel2#+GPy.kern.White(1)
+kernel = kernel1+kernel2
 
 xtraining1 = xtraining.reshape(xtraining.shape[0],1)
 ytraining1 = ytraining.reshape(ytraining.shape[0],1)
 xnew = mjdinfer.reshape(mjdinfer.shape[0],1)
-#xnew30 = mjdinfer30.reshape(mjdinfer30.shape[0],1)
 model = GPy.models.GPRegression(xtraining1,ytraining1,kernel)
 model.add.rbf_1.lengthscale.constrain_bounded(rbf1s, rbf1e)
 model.add.rbf_2.lengthscale.constrain_bounded(rbf2s, rbf2e)
-model.Gaussian_noise.variance.constrain_bounded(0,5*TOAerror*TOAerror)
+#model.Gaussian_noise.variance.constrain_bounded(0,5*TOAerror*TOAerror)
 model.optimize()
 model.optimize_restarts(num_restarts = 10)
 print "MODEL FOR PULSAR",pulsar, model
 ypredict, yvariance = model.predict(xnew)
 ymodel, yvarmodel = model.predict(xtraining1)
 
-f = open('model_params_2.txt','a')
-f.write('{0}_2kern {1:.3e} {2:.2f} {3:.3e} {4:.2f} {5:.3e}\n' .format(pulsar,model[0],model[1],model[2],model[3],model[4]))
-f.close()
-
-
-# Compute residuals at training points
-#resid_resid = np.array(ymodel - ytraining1)
-#resid_resid_err = 2 * np.sqrt(yvarmodel)
-#rr = np.squeeze(resid_resid.T)
-#print rr.shape
-# Compute autocorrelation function of residuals to test if it is white noise
-#autocorr = np.correlate(rr,rr, mode='full')
-#smoothac = ss.savgol_filter(autocorr[autocorr.shape[0]/2:],13, 4)
-#previous = 1000000
-#zerocrossing = 0
-#i=0
-#while zerocrossing < 3:
-#    if (smoothac[i]*previous < 0):
-#        print smoothac[i],i, zerocrossing
-#        zerocrossing += 1
-#        peak = i
-#    previous = smoothac[i]
-#    i+=1
-#print 0.8*peak
-#plt.plot(autocorr[autocorr.shape[0]/2:])
-#plt.xlabel('Lag')
-#plt.ylabel('Autocorrelation')
-#plt.savefig('{0}_ac2kern_100_1000.png' .format(pulsar))
+#f = open('model_params_2.txt','a')
+#f.write('{0}_2kern {1:.3e} {2:.2f} {3:.3e} {4:.2f} {5:.3e}\n' .format(pulsar,model[0],model[1],model[2],model[3],model[4]))
+#f.close()
 
 Ulim = ypredict + 2*np.sqrt(np.abs(yvariance))
 Llim = ypredict - 2*np.sqrt(np.abs(yvariance))
@@ -196,8 +165,8 @@ print "The data claim a median sigma TOA of:", np.median(residuals[:,2])
 br_index = nu2dot/nudot**2/period
 
 # Limits of nudot plot
-Ulim2 = np.array(nudot + 2*nudot_err)
-Llim2 = np.array(nudot - 2*nudot_err)
+#Ulim2 = np.array(nudot + 2*nudot_err)
+#Llim2 = np.array(nudot - 2*nudot_err)
 errorbars = np.array(2*nudot_err)
 
 # Limits of nu2dot plot
@@ -208,25 +177,17 @@ Llim2n = np.array(nu2dot - 2*nu2dot_err)
 # Write outputs
 outputfile = '{0}/{0}_nudot.dat' .format(pulsar)
 np.savetxt(outputfile, nudot)
-outputfile = '{0}/{0}_Llim2.dat' .format(pulsar)
-np.savetxt(outputfile, Llim2)
-outputfile = '{0}/{0}_Ulim2.dat' .format(pulsar)
-np.savetxt(outputfile, Ulim2)
+#outputfile = '{0}/{0}_Llim2.dat' .format(pulsar)
+#np.savetxt(outputfile, Llim2)
+#outputfile = '{0}/{0}_Ulim2.dat' .format(pulsar)
+#np.savetxt(outputfile, Ulim2)
 outputfile = '{0}/{0}_errorbars.dat' .format(pulsar)
 np.savetxt(outputfile, errorbars)
 outputfile = '{0}/{0}_mjdinfer_spindown.dat' .format(pulsar)
 np.savetxt(outputfile, xtraining)
 
-# Produce a plot showing difference between model and data
-# resid_resid = []
-# for i in range(xtraining.shape[0]):
-#     idx = np.argmin(np.abs(mjdinfer - xtraining[i]))
-#     resid_resid.append(ytraining[i]-ypredict[idx])
-
-#print ymodel.shape, ytraining.shape
 resid_resid = (ymodel -ytraining1)*1000
 resid_resid_err = residuals[:,2]*1000
-# 2 * np.sqrt(np.abs(yvarmodel))
 
 if (args.probplot):
     start=50
@@ -273,18 +234,14 @@ if (args.diagnosticplots):
     plt.plot(mjdinfer, ypredict, 'k-')
     plt.fill_between(xnew[:,0], Llim[:,0], Ulim[:,0], color = 'k', alpha = 0.2)
     plt.xlabel('Modified Julian Date', fontsize=16)
-    #plt.ylabel('Timing Residuals (Sec)', fontsize=16)
     ax.xaxis.set_visible(False)
     ax.grid()
     plt.ylim(np.min(ypredict),np.max(ypredict))
     ax=fig.add_subplot(2,1,2)
-    plt.plot(xtraining, resid_resid,'k-')
+    plt.plot(xtraining, resid_resid,'k.')
     plt.errorbar(xtraining, resid_resid, yerr=resid_resid_err, fmt='.',color = 'k')
     ax.grid()
     plt.xlabel('Modified Julian Date', fontsize=16)
-    #plt.ylabel('Data - Model (mS)', fontsize=16)
-    #x1,x2,y1,y2 = plt.axis()
-    #plt.axis((x1,x2,np.min(Llim), np.max(Ulim)))
     plt.ylim(np.min((resid_resid)-(2*resid_resid_err)),np.max((resid_resid)+(2*resid_resid_err)))
 
 # makes histogram of data - model values
@@ -301,16 +258,10 @@ if (args.diagnosticplots):
     plt.subplots_adjust(hspace=0.1)
     plt.savefig('./{0}/residuals_2kern.png'.format(pulsar))
     plt.close()
-#    plt.plot(mjdinfer30, nudot, 'r+')
-#    x1,x2,y1,y2 = plt.axis()
-#    plt.axis((x1,x2,np.min(Llim2[10:-10]), np.max(Ulim2[10:-10])))
-#    plt.fill_between(xnew30[30:-30,0], Llim2[30:-30,0], Ulim2[30:-30,0], color = 'b', alpha = 0.2)
-#    plt.fill_between(xtraining1[3:-3,0], Llim2[3:-3,0], Ulim2[3:-3,0], color = 'b', alpha = 0.2)
     x=np.squeeze(xtraining1)
 #    x=np.squeeze(mjdinfer)
     y=np.squeeze(nudot)
     ye=np.squeeze(2*nudot_err)
-#    print "SIZE OF X Y YE",x.shape,y.shape,ye.shape
     plt.errorbar(x[3:-3], y[3:-3], yerr=ye[3:-3],linestyle='-')
     plt.xlabel('MJD of Simulation')
     plt.ylabel(r'$\mathrm{{\dot{{\nu}}}}$ ($\mathrm{{s^{{-2}}}}$)')
@@ -320,7 +271,6 @@ if (args.diagnosticplots):
 
     y=np.squeeze(br_index)
     ye=np.squeeze(2*nu2dot_err)
-#    print "SIZE OF X Y YE",x.shape,y.shape,ye.shape
     plt.errorbar(x[3:-3], y[3:-3], yerr=ye[3:-3],linestyle='-')
     plt.xlabel('MJD of Simulation')
     plt.ylabel(r'$\mathrm{{\dot{{\nu}}}}$ ($\mathrm{{s^{{-2}}}}$)')
@@ -330,7 +280,6 @@ if (args.diagnosticplots):
 
     y=np.squeeze(nu2dot)
     ye=np.squeeze(2*nu2dot_err)
-#    print "SIZE OF X Y YE",x.shape,y.shape,ye.shape
     plt.errorbar(x[3:-3], y[3:-3], yerr=ye[3:-3],linestyle='-')
     plt.xlabel('MJD of Simulation')
     plt.ylabel(r'$\mathrm{{\dot{{\nu}}}}$ ($\mathrm{{s^{{-2}}}}$)')
