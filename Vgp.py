@@ -38,11 +38,19 @@ pulsar = args.pulsar
 interval = args.interval
 data = np.loadtxt(filename)
 
-data = data/100
+if outfile[-5:] == '_norm':
+    suffix = '_norm'
+else:
+    suffix = ''
+
+#data = data/100
 if os.path.exists('./{0}/mjd.txt'.format(pulsar)):
     mjd = np.loadtxt('./{0}/mjd.txt'.format(pulsar))
 if os.path.exists('./{0}/mjd_norm.txt'.format(pulsar)):
     mjd = np.loadtxt('./{0}/mjd_norm.txt'.format(pulsar))
+
+noiserms = np.loadtxt('./{0}/{0}_off_pulse_std{1}.txt'.format(pulsar,suffix))
+
 #mjdremoved = np.loadtxt('./{0}/mjdremoved.txt'.format(pulsar))
 readbins = np.loadtxt('./{0}/{1}'.format(pulsar,datfile))
 leftbin = readbins[0]
@@ -59,13 +67,10 @@ print "-----"
 print bins,profiles, np.std(data[0:20,:]), np.std(data[bins-21:-1,:])
 print 'size',data.shape
 # find properties of noise, assuming data have been prepared using Valign
-noiserms = np.mean((np.std(data[0:20,:]), np.std(data[bins-21:-1,:])))
-print 'RMS of the noise is:', noiserms 
+#noiserms = np.mean((np.std(data[0:20,:]), np.std(data[bins-21:-1,:])))
+#print 'RMS of the noise is:', noiserms
 
-# Normalize by rms, so everything is now in units of snr
-#data = data/noiserms
-
-# build template model to subtract
+# build template model to subtract and find mean rms of off-peak
 template = np.median(data,1)
 
 # create difference data
@@ -95,7 +100,7 @@ if not (os.path.exists('./{0}/{1}_bins/'.format(pulsar,outfile))):
 
 for i in range(bins):
     ytraining=difference[i,:]
-    inferredarray[i,:], inferredvar[i,:], model_params = Vf.gpinferred(xtraining, ytraining, mjdinfer, noiserms)
+    inferredarray[i,:], inferredvar[i,:], model_params = Vf.gpinferred(xtraining, ytraining, mjdinfer)
     Ulim[:] = inferredarray[i,:] + 2 * np.sqrt(inferredvar[i,:])
     Llim[:] = inferredarray[i,:] - 2 * np.sqrt(inferredvar[i,:])
     print "********** GP operating on bin",i+1,"of",bins,"for pulsar",pulsar,"**********"
@@ -107,6 +112,8 @@ for i in range(bins):
     plt.axis((x1,x2,mindifference,maxdifference))
     plt.savefig('./{0}/{1}_bins/bin{2}.png'.format(pulsar,outfile,int(i+leftbin)))
     plt.clf()
+
+
         
 inferredarray = inferredarray/noiserms
 maxdifference = np.amax(inferredarray)
@@ -135,5 +142,53 @@ f = open('./{0}/{0}_outfile.dat' .format(pulsar), 'w')
 f.write(outfile)
 f.close()
 
-firstmjd = [mjd[0]]
-np.savetxt('./{0}/first_emission_mjd.txt' .format(pulsar), firstmjd)
+#Plots the simulation variability maps for the paper
+
+# max_of_inferredarray = np.max(inferredarray)
+# min_of_inferredarray = np.min(inferredarray)
+# limitdifference = np.max((max_of_inferredarray, np.abs(min_of_inferredarray)))
+# my_sim_max = limitdifference
+# my_sim_min = -limitdifference
+
+# firstmjd = [mjd[0]]
+# np.savetxt('./{0}/first_emission_mjd.txt' .format(pulsar), firstmjd)
+# fig = plt.figure()
+# plt.imshow(inferredarray,aspect = 'auto',cmap = "RdBu_r", vmin = my_sim_min, vmax = my_sim_max)
+# for i in range(profiles):
+#     print 'mjd',i,mjd[i]
+#     plt.vlines(mjd[i],0,203,linestyles='dotted')
+# plt.ylabel(r'Phase Fraction',fontsize=14)
+# plt.xlabel(r'Days',fontsize=14)
+# ylocs = [0,50,100,150,200]
+# ytlabs = [0/1024.0,50/1024.0,100/1024.0,150/1024.0,200/1024.0]
+# ytlabs = np.round(ytlabs,2)
+# plt.yticks(ylocs,ytlabs)
+# #plt.colorbar()
+# plt.hlines(104,0,1770)
+# cbaxes_corr = fig.add_axes([0.45, 0.93, 0.45, 0.01])
+# cb_corr = plt.colorbar(cax = cbaxes_corr,orientation="horizontal")
+# cbaxes_corr.tick_params(labelsize=10) 
+# plt.savefig('var_map.png' .format(pulsar))
+# plt.clf()
+
+# Plots the variability map in isolation
+
+maxdifference = np.amax(inferredarray)
+mindifference = np.amin(inferredarray)
+limitdifference = np.max((maxdifference, np.abs(mindifference)))
+
+readbins = np.loadtxt('./{0}/{1}'.format(pulsar,datfile))
+
+leftbin = readbins[0]
+rightbin = readbins[1]
+allbins = readbins[2]
+bins = rightbin-leftbin
+
+yaxis=[]
+yaxis.append(np.linspace(0, bins/allbins, bins))
+
+print 'yaxis is',yaxis
+print 'yaxis zero is',yaxis[0]
+
+Vf.makemap(inferredarray, -limitdifference, limitdifference, mjdinfer, yaxis[0],mjd, 'MJD', 'Fraction Of Pulse Period', pulsar, './{0}/{1}_inferreddata.png'.format(pulsar,outfile), peakline=allbins/4-leftbin)
+
