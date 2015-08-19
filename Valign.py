@@ -11,6 +11,7 @@ import scipy.signal as scisig
 import sys
 import Vfunctions as Vf
 import os 
+pb.ioff()
 
 # Read command line arguments
 parser = argparse.ArgumentParser(description='Pulsar profile alignment for variability studies')
@@ -88,15 +89,50 @@ else:
     resampled = baselineremoved
 baselineremoved = resampled
 
-
 # Align data by the following way: x-correlate profiles with brightest, shift then x-correlate with average
 aligned_data, template = Vf.aligndata(baselineremoved, brightestprofile, pulsar)
 originaltemplate = np.copy(template)
 suffix = ''
 
+# Find pulse regions on template
+rmstemplate = np.median(rmsperepoch) / np.sqrt(baselineremoved.shape[1])
+peaks = 1
+regioncounter = 0
+peakoriginal = np.max(originaltemplate)
+
+while peaks != 0 and regioncounter < 5:
+    bs, be, peaks, cuttemplate = Vf.binstartend(template, peakoriginal, rmstemplate)
+    binstartzoom.append(bs)
+    binendzoom.append(be)
+    template = cuttemplate
+    regioncounter += 1
+# last attempt has failed, hence we are here, so:
+regioncounter -= 1
+
+print 'Found ', regioncounter, ' region(s)'
+left = np.array(binstartzoom)
+right = np.array(binendzoom)
+binline = np.zeros(3)
+
+
+
+# make sure they are in ascending order
+binstartzoom.sort()
+binendzoom.sort()
+
+all_on_pulse = []
+for b in range(regioncounter):
+    all_on_pulse.append(range(binstartzoom[b],binendzoom[b]))
+
+[item for sublist in all_on_pulse for item in sublist]
+
+all_on_pulse = all_on_pulse[0]
+
+on_pulse_data = aligned_data[all_on_pulse,]
+
 # Normalise data to peak if flag -n used. Peak should already be aligned and at nbins/4:
 if (args.normalise):
-    aligned_data = Vf.norm_to_peak(aligned_data,aligned_data.shape[0]/4-1)
+    aligned_data = Vf.norm_to_peak(aligned_data,on_pulse_data)
     suffix = '_norm'
     flagged = 0
 
@@ -105,6 +141,10 @@ if (args.normalise):
 
     for i in range(aligned_data.shape[0]):
         originaltemplate[i]=np.median(aligned_data[i,:])
+        
+    med_peak = np.max(originaltemplate)
+    originaltemplate = originaltemplate/med_peak
+    aligned_data = aligned_data/med_peak
 
     # If profiles deviate far from the median profile, they are flagged and saved in a folder called 'flagged_profiles'
     sum_diff = np.zeros((aligned_data.shape[1]))
@@ -126,25 +166,6 @@ if (args.normalise):
 
     print "Percentage of profiles flagged as unusual:",np.round(float(flagged)/aligned_data.shape[1]*100.0,2),"% (",flagged,'out of',aligned_data.shape[1],")"
 
-# Find pulse regions on template
-rmstemplate = np.median(rmsperepoch) / np.sqrt(baselineremoved.shape[1])
-peaks = 1
-regioncounter = 0
-peakoriginal = np.max(originaltemplate)
-
-while peaks != 0 and regioncounter < 5:
-    bs, be, peaks, cuttemplate = Vf.binstartend(template, peakoriginal, rmstemplate)
-    binstartzoom.append(bs)
-    binendzoom.append(be)
-    template = cuttemplate
-    regioncounter += 1
-# last attempt has failed, hence we are here, so:
-regioncounter -= 1
-
-print 'Found ', regioncounter, ' region(s)'
-left = np.array(binstartzoom)
-right = np.array(binendzoom)
-binline = np.zeros(3)
 for i in range(regioncounter):
     outputarray = aligned_data[left[i]:right[i],:]
     outputfile = '{0}/zoomed_{0}_bins_{1}-{2}{3}.txt' .format(pulsar,left[i],right[i],suffix)
@@ -177,6 +198,37 @@ if (args.goodprofiles):
         else:
             Vf.makeplots(pulsar,aligned_data[left[0]:right[0],:],mjdout,dir,bins,template=originaltemplate[left[0]:right[0]],yllim=-0.1*np.max(originaltemplate),yulim=np.max(aligned_data[left[0]:right[0],:]),peakindex=bins/4-left[0],cal=1)
 
+# make file of median and std dev in each bin
+
+if (args.normalise): 
+
+    open('{0}/{0}_med.txt' .format(pulsar), 'w').close()
+    open('{0}/{0}_std.txt' .format(pulsar), 'w').close()
+
+    for i in range(aligned_data.shape[0]):
+        bin_med = np.median(aligned_data[i,:])
+        bin_std = np.std(aligned_data[i,:])
+        f = open('{0}/{0}_med.txt' .format(pulsar), 'a')
+        f.write('{0}\n' .format(bin_med))
+        g = open('{0}/{0}_std.txt' .format(pulsar), 'a')
+        g.write('{0}\n' .format(bin_std))
+    f.close()
+    g.close()
+
+# Find the off-pulse standard deviation for use in Vgp.py
+
+off_pulse_data = np.delete(aligned_data,all_on_pulse,0)
+
+std_off_pulse_data = np.std(off_pulse_data)
+
+z = open('{0}/{0}_off_pulse_std{1}.txt' .format(pulsar,suffix), 'w')
+z.write('{0}' .format(std_off_pulse_data))
+
+#    stdev = np.loadtxt('{0}/{0}_std.txt' .format(pulsar))
+
+#    plt.plot(stdev)
+#    plt.savefig('{0}_stdev.png' .format(pulsar))
+
 # Make plots of removed profiles if needed
 if (args.badprofiles):
     dir='removed_profiles{0}' .format(suffix)
@@ -187,10 +239,20 @@ np.savetxt(outputfile, mjdout)
 outputfile = '{0}/mjdremoved{1}.txt' .format(pulsar,suffix)
 np.savetxt(outputfile, mjdremoved)
 
+# Save data from certain profiles for later plots
+
+#for i in profs: 
+#    print "I HERE",i
+#    np.savetxt('./{0}/{0}_prof{1}.dat' .format(pulsar,i), aligned_data[:,i])
+
 if (args.diagnosticplots):
-    plt.imshow(data,aspect = 'auto')
-    plt.colorbar(orientation="horizontal")
+    plt.imshow(data[:,:-1],cmap=plt.cm.binary,aspect = 'auto')
+    plt.ylabel('Pulse Phase Bin')
+    plt.xlabel('Observation Index')
+#    plt.colorbar(orientation="horizontal")
     plt.savefig('./{0}/{0}_rawdata.png' .format(pulsar))
-    plt.imshow(baselineremoved,aspect = 'auto')
+    plt.imshow(baselineremoved,cmap=plt.cm.binary,aspect = 'auto')
+    plt.ylabel('Pulse Phase Bin')
+    plt.xlabel('Observation Index')
     plt.savefig('./{0}/{0}_baselined.png' .format(pulsar))
     plt.clf()
