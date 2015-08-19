@@ -286,13 +286,16 @@ def makemap(data, myvmin, myvmax, xaxis, yaxis, xlines, xlabel, ylabel, title, o
     if peakline!=None:
         plt.hlines(peakline,0,xbins)
     
+    print "BINS",ybins
+
 #    ylocs = np.arange(ybins,step = 30)
     ylocs = np.linspace(0,ybins,10)
+    print "ylocs",ylocs
     yticklabels = []
-#    for i in ylocs:
+    for i in ylocs[:-1]:
 #        print "KEK",yaxis.shape
-#       yticklabels.append(round(yaxis[i],3))
-#    plt.yticks(ylocs,yticklabels)
+	    yticklabels.append(round(yaxis[i],2))
+    plt.yticks(ylocs,yticklabels)
     if combined == None:
         plt.colorbar(orientation="vertical")
         plt.savefig(outfile)
