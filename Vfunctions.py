@@ -274,8 +274,9 @@ def makemap(data, myvmin, myvmax, xaxis, yaxis, xlines, xlabel, ylabel, title, o
 #            if xlinesremoved[i]-xaxis[0] >= 0:
 #                plt.vlines(xlinesremoved[i]-xaxis[0],0,ybins,linestyles='dotted', color = "r")
 
-    plt.ylabel(ylabel,fontsize=16)
-    plt.xlabel(xlabel,fontsize=16)
+#   fig.text(0.154, 0.863, '(C)', ha='center', va='center', size=34)
+    plt.ylabel(ylabel,fontsize=30)
+    plt.xlabel(xlabel,fontsize=30)
 #    plt.suptitle(title,fontsize=16)
     xlocs = np.arange(xbins,step = 500)
     xticklabels = []
@@ -286,20 +287,24 @@ def makemap(data, myvmin, myvmax, xaxis, yaxis, xlines, xlabel, ylabel, title, o
     if peakline!=None:
         plt.hlines(peakline,0,xbins)
     
-    print "BINS",ybins
 
 #    ylocs = np.arange(ybins,step = 30)
     ylocs = np.linspace(0,ybins,10)
-    print "ylocs",ylocs
     yticklabels = []
     for i in ylocs[:-1]:
-#        print "KEK",yaxis.shape
 	    yticklabels.append(round(yaxis[i],2))
     plt.yticks(ylocs,yticklabels)
+    
+    plt.tick_params(axis='both', which='major', labelsize=30)
+    
     if combined == None:
-        plt.colorbar(orientation="vertical")
-        plt.savefig(outfile)
-        plt.clf()
+        
+	    cbaxes3 = fig.add_axes([0.35, 0.94, 0.55, 0.01])
+	    cb3 = plt.colorbar(cax = cbaxes3,orientation="horizontal")
+	    cb3.update_ticks()
+	    cb3.ax.tick_params(labelsize=24)
+	    plt.savefig(outfile)
+	    plt.clf()
 
 def DKD(X1, X2, theta):
 
@@ -347,7 +352,10 @@ def combined_map(zoom_region_no,data_norm,data_not, myvmin_norm, myvmax_norm, my
     label_size = 14
     mpl.rcParams['xtick.labelsize'] = label_size
     mpl.rcParams['ytick.labelsize'] = label_size
-	
+
+    # if peakline!=None:
+    # 	    for i in range(len(mjdinferspindown)):
+    # 		    mjdinferspindown[i] = mjdinferspindown[i]-12464
 
     fig=plt.figure()
     fig.set_size_inches(16,10)
@@ -437,10 +445,34 @@ def combined_map(zoom_region_no,data_norm,data_not, myvmin_norm, myvmax_norm, my
 
     errorbars = errorbars*10**power
 
+
+    if pulsar == 'J0940-5428_paper':
+	    nudot_1 = nudot[3:39]
+	    mjdinfer_spindown_1 = mjdinferspindown[3:39]
+	    errorbars_1 = errorbars[3:39]
+
+	    nudot_2 = nudot[-33:-3]
+	    mjdinfer_spindown_2 = mjdinferspindown[-33:-3]
+	    errorbars_2 = errorbars[-33:-3]
+
+	    z1 = np.polyfit(mjdinfer_spindown_1, nudot_1, 1)
+	    z2 = np.polyfit(mjdinfer_spindown_2, nudot_2, 1)
+	    fit1 = []
+	    fit2 = []
+
+	    for i in mjdinfer_spindown_1:
+		    fit1.append(z1[0]*i + z1[1])
+	    for i in mjdinfer_spindown_2:
+		    fit2.append(z2[0]*i + z2[1])
+
+
     ax.grid()
 #    plt.plot(mjdinferspindown, nudot)
 #    plt.errorbar(mjdinferspindown, nudot, yerr=errorbars,linestyle='-')
-    plt.errorbar(mjdinferspindown[3:-3], nudot[3:-3], yerr=errorbars[3:-3],linestyle='-')
+    plt.errorbar(mjdinferspindown[3:-3], nudot[3:-3], yerr=errorbars[3:-3], fmt='.')
+    if pulsar == 'J0940-5428_paper':
+	    plt.plot(mjdinfer_spindown_1,fit1,'k-')
+	    plt.plot(mjdinfer_spindown_2,fit2,'k-')
 #    plt.fill_between(mjdinferspindown, spinllim, spinulim, color = 'b', alpha = 0.2)
     plt.xlim(xaxis[0],xaxis[-1])
     #start_mjd_diff = int(abs(xaxis[0]-mjdinferspindown[0]))
@@ -449,18 +481,24 @@ def combined_map(zoom_region_no,data_norm,data_not, myvmin_norm, myvmax_norm, my
 	   # end_mjd_diff = 1
     #plt.ylim(np.median(nudot)-2*np.std(nudot),np.median(nudot)+2*np.std(nudot))
 
-# Make the y limits based on which nudot values are visible on plot, i.e. between mjdinferspindown[3:-3]
+#Make the y limits based on which nudot values are visible on plot, i.e. between mjdinferspindown[3:-3]
 
     nudot_visible = []
 
+    print 'mjdufer',mjdinferspindown
+    print 'xaxis',xaxis
+#    sys.exit()
     for i in range(nudot.shape[0]):
 	    if i > 3 and i < nudot.shape[0]-3 and mjdinferspindown[i] > xaxis[0] and mjdinferspindown[i] < xaxis[-1]:
 		    nudot_visible.append(nudot[i])
-        
     diff_ymin_ymax = np.max(nudot_visible)-np.min(nudot_visible)
 
     plt.ylim(np.min(nudot_visible)-0.1*diff_ymin_ymax,np.max(nudot_visible)+0.05*diff_ymin_ymax)
 
+
+    fig.text(0.149, 0.87, '(A)', ha='center', va='center', size=18)
+    fig.text(0.149, 0.59, '(B)', ha='center', va='center', size=18)
+    fig.text(0.149, 0.315, '(C)', ha='center', va='center', size=18)
 
     fig.text(0.05, 0.777, 'Fraction of\nPulse Period', ha='center', va='center', rotation='vertical', size=18)
     fig.text(0.05, 0.503, 'Fraction of\nPulse Period', ha='center', va='center', rotation='vertical', size=18)
