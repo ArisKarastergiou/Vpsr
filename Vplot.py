@@ -10,6 +10,13 @@ import Vfunctions as Vf
 import glob
 import os
 import sys
+plt.ioff()
+
+#import matplotlib as mpl
+#label_size = 10
+#mpl.rcParams['xtick.labelsize'] = label_size
+#mpl.rcParams['ytick.labelsize'] = label_size
+
 # Read command line arguments
 parser = argparse.ArgumentParser(description='Produces plots for variability studies')
 parser.add_argument('-p','--pulsar', help='Pulsar name', required=True)
@@ -89,9 +96,9 @@ for i in range(len(outfiles)):
         ax.xaxis.set_visible(False)
 
         if i == 0 or i == 1:
-            Vf.makemap(inferredarray, -limitdifference, limitdifference, mjdinfer, yaxis[i], mjd, 'MJD', 'Fraction of Pulse Period', pulsar, '.not_saved.png',peakline=allbins/4-leftbin, combined=True)
+            Vf.makemap(inferredarray, -limitdifference, limitdifference, mjdinfer, yaxis[i], mjd, 'MJD', 'Fraction of\nPulse Period', pulsar, '.not_saved.png',peakline=allbins/4-leftbin, combined=True)
         else:
-            Vf.makemap(inferredarray, -limitdifference, limitdifference, mjdinfer, yaxis[i], mjd, 'MJD', 'Fraction of Pulse Period', pulsar, '.not_saved.png',combined=True)
+            Vf.makemap(inferredarray, -limitdifference, limitdifference, mjdinfer, yaxis[i], mjd, 'MJD', 'Fraction of\nPulse Period', pulsar, '.not_saved.png',combined=True)
 
 
         ax=fig.add_subplot(2,1,2)
@@ -109,7 +116,7 @@ for i in range(len(outfiles)):
         plt.ylim(np.min(nudot[start_mjd_diff:-end_mjd_diff]),np.max(nudot[start_mjd_diff:-end_mjd_diff]))
 
         plt.xlabel('MJD')
-        plt.ylabel(r'$\mathrm{{\dot{{\nu}}}}$ ($\mathrm{{10^{{-{0}}} s^{{-2}}}}$)'.format(power) ,fontsize=16)
+        plt.ylabel(r'$\mathrm{{\dot{{\nu}}}}$ ($\mathrm{{10^{{-{0}}} s^{{-2}}}}$)'.format(power) ,fontsize=18)
         y_formatter = matplotlib.ticker.ScalarFormatter(useOffset=False)
         ax.yaxis.set_major_formatter(y_formatter)
         plt.subplots_adjust(hspace=0)
@@ -127,8 +134,8 @@ for i in range(len(outfiles)):
 if (args.final):
 
     nudot = np.loadtxt('{0}/{0}_nudot.dat' .format(pulsar))
-#   Llim2 = np.loadtxt('{0}/{0}_Llim2.dat' .format(pulsar))
-#   Ulim2 = np.loadtxt('{0}/{0}_Ulim2.dat' .format(pulsar))
+    #Llim2 = np.loadtxt('{0}/{0}_Llim2.dat' .format(pulsar))
+    #Ulim2 = np.loadtxt('{0}/{0}_Ulim2.dat' .format(pulsar))
     errorbars = np.loadtxt('{0}/{0}_errorbars.dat' .format(pulsar))
     mjdinfer_spindown = np.loadtxt('./{0}/{0}_mjdinfer_spindown.dat'.format(pulsar))
     mjd_norm = np.loadtxt('./{0}/mjd_norm.txt'.format(pulsar))
@@ -146,8 +153,8 @@ if (args.final):
         limitdifference = np.max((maxdifference, np.abs(mindifference)))
 
         if i == 0:
-            Vf.combined_map(i,inferredarray_norm,inferredarray, -limitdifference_norm, limitdifference_norm, -limitdifference, limitdifference, mjdinfer, yaxis[i], mjd_norm,mjd,nudot,errorbars,mjdinfer_spindown, 'MJD', 'Fraction of Pulse Period', pulsar, peakline=allbins/4-leftbin_initial)
+            Vf.combined_map(i,inferredarray_norm,inferredarray, -limitdifference_norm, limitdifference_norm, -limitdifference, limitdifference, mjdinfer, yaxis[i], mjd_norm,mjd,nudot,errorbars,mjdinfer_spindown, 'Modified Julian Date', 'Fraction of\nPulse Period', pulsar, peakline=allbins/4-leftbin_initial)
         else:
-            Vf.combined_map(i,inferredarray_norm,inferredarray, -limitdifference_norm, limitdifference_norm, -limitdifference, limitdifference, mjdinfer, yaxis[i+1], mjd_norm,mjd,nudot,errorbars,mjdinfer_spindown, 'MJD', 'Fraction of Pulse Period', pulsar)
+            Vf.combined_map(i,inferredarray_norm,inferredarray, -limitdifference_norm, limitdifference_norm, -limitdifference, limitdifference, mjdinfer, yaxis[i+1], mjd_norm,mjd,nudot,errorbars,mjdinfer_spindown, 'Modified Julian Date', 'Fraction of\nPulse Period', pulsar)
         
 
