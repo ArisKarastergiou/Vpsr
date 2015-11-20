@@ -67,7 +67,7 @@ else:
 # Make plots of originals if needed
 if (args.originalplots):
     dir='raw_profiles'
-    Vf.makeplots(pulsar,data,mjd,dir,bins)
+    Vf.makeplots(pulsar,data,mjd,dir,bins,cal=1)
 
 # Remove baseline and outliers if requested
 baselineremoved, removedprofiles, rmsperepoch, outlierlist, inlierlist = Vf.removebaseline(data, outlierthreshold)
@@ -82,7 +82,7 @@ brightestprofile = Vf.findbrightestprofile(baselineremoved,rmsperepoch)
 # resample if brightest profile is less than 20 sigma peak
 brightprofpeak = np.max(baselineremoved[:,brightestprofile])
 brightprofrms = rmsperepoch[brightestprofile]
-if brightprofpeak/brightprofrms < 20 :
+if brightprofpeak/brightprofrms < 2 :
     resampled = scisig.resample(baselineremoved,bins/8)
     print 'resampling 8'
 else:
@@ -93,6 +93,9 @@ baselineremoved = resampled
 aligned_data, template = Vf.aligndata(baselineremoved, brightestprofile, pulsar)
 originaltemplate = np.copy(template)
 suffix = ''
+plt.plot(originaltemplate)
+plt.savefig('./{0}/{0}_originaltemplate.png' .format(pulsar))
+plt.clf()
 
 # Find pulse regions on template
 rmstemplate = np.median(rmsperepoch) / np.sqrt(baselineremoved.shape[1])
@@ -109,12 +112,28 @@ while peaks != 0 and regioncounter < 5:
 # last attempt has failed, hence we are here, so:
 regioncounter -= 1
 
+# File that manually sets the start and end bin window of the pulse
+
+f = open('/data1/pulsar_windows.txt','r')
+pulsar_windows = []
+pulsar_windows_lines = f.readlines()
+
+for i in range(len(pulsar_windows_lines)):
+    pulsar_windows.append(pulsar_windows_lines[i].split())
+    if  pulsar_windows[-1][0] == pulsar:
+        if len(pulsar_windows[-1]) == 3:
+            binstartzoom = [int(pulsar_windows[-1][1])]
+            binendzoom = [int(pulsar_windows[-1][2])]
+            regioncounter = 1
+        if len(pulsar_windows[-1]) == 5:
+            binstartzoom = [int(pulsar_windows[-1][1]),int(pulsar_windows[-1][3])]
+            binendzoom = [int(pulsar_windows[-1][2]),int(pulsar_windows[-1][4])]
+            regioncounter = 2
+
 print 'Found ', regioncounter, ' region(s)'
 left = np.array(binstartzoom)
 right = np.array(binendzoom)
 binline = np.zeros(3)
-
-
 
 # make sure they are in ascending order
 binstartzoom.sort()
@@ -145,7 +164,6 @@ if (args.normalise):
     med_peak = np.max(originaltemplate)
     originaltemplate = originaltemplate/med_peak
     aligned_data = aligned_data/med_peak
-
     # If profiles deviate far from the median profile, they are flagged and saved in a folder called 'flagged_profiles'
     sum_diff = np.zeros((aligned_data.shape[1]))
 
@@ -244,6 +262,8 @@ np.savetxt(outputfile, mjdremoved)
 #for i in profs: 
 #    print "I HERE",i
 #    np.savetxt('./{0}/{0}_prof{1}.dat' .format(pulsar,i), aligned_data[:,i])
+np.savetxt('./{0}/{0}_prof0.dat' .format(pulsar), aligned_data[:,0])
+
 
 if (args.diagnosticplots):
     plt.imshow(data[:,:-1],cmap=plt.cm.binary,aspect = 'auto')
