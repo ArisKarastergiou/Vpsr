@@ -159,20 +159,20 @@ if (args.diagnosticplots):
     fig=plt.figure()
     fig.set_size_inches(16,10)
     ax=fig.add_subplot(2,1,1)
+    plt.tick_params(axis='both', which='major', labelsize=20)
     plt.plot(xtraining, ytraining,'r.')
     plt.plot(mjdinfer, ypredict, 'k-')
     plt.fill_between(xnew[:,0], Llim[:,0], Ulim[:,0], color = 'k', alpha = 0.2)
     plt.xlabel('Modified Julian Date', fontsize=16)
     ax.xaxis.set_visible(False)
     ax.grid()
-    plt.ylim(np.min(ypredict),np.max(ypredict))
+    #plt.ylim(np.min(ypredict),np.max(ypredict))
     ax=fig.add_subplot(2,1,2)
-
-    
+    plt.tick_params(axis='both', which='major', labelsize=20)
     plt.plot(xtraining, resid_resid,'k.')
     plt.errorbar(xtraining, resid_resid, yerr=resid_resid_err, fmt='.',color = 'k') 
     ax.grid()
-    plt.xlabel('Modified Julian Date', fontsize=16)
+    plt.xlabel('Modified Julian Date', fontsize=20)
     plt.ylim(np.min((resid_resid)-(2*resid_resid_err)),np.max((resid_resid)+(2*resid_resid_err)))
 
     ## makes histogram of data - model values
@@ -184,8 +184,8 @@ if (args.diagnosticplots):
 
     # fig.text(0.7, 0.2, 'GP Noise Variance: {0:.3e}' .format(model[2]), ha='center', va='center', size=16)
 
-    fig.text(0.06, 0.72, 'Timing Residuals (s)', ha='center', va='center', rotation='vertical', size=16)
-    fig.text(0.06, 0.3, 'Data - Model (ms)', ha='center', va='center', rotation='vertical', size=16)
+    fig.text(0.06, 0.72, 'Timing Residuals (s)', ha='center', va='center', rotation='vertical', size=20)
+    fig.text(0.06, 0.3, 'Model - Data (ms)', ha='center', va='center', rotation='vertical', size=20)
     ax.xaxis.labelpad = 20
     plt.subplots_adjust(hspace=0.1)
     plt.savefig('./{0}/residuals_1kern.png'.format(pulsar))
@@ -194,7 +194,8 @@ if (args.diagnosticplots):
     x=np.squeeze(xtraining1)
     y=np.squeeze(nudot)
     ye=np.squeeze(2*nudot_err)
-    plt.errorbar(x[3:-3], y[3:-3], yerr=ye[3:-3],linestyle='-')
+#    plt.errorbar(x[3:-3], y[3:-3], yerr=ye[3:-3],linestyle='-')
+    plt.errorbar(x[1:-1], y[1:-1], yerr=ye[1:-1],linestyle='-')
     plt.xlabel('MJD of Simulation')			
     plt.ylabel(r'$\mathrm{{\dot{{\nu}}}}$ ($\mathrm{{s^{{-2}}}}$)')
     plt.subplots_adjust(hspace=0)
