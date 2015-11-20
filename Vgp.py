@@ -2,8 +2,8 @@
 # Reads in 2d profile data(epoch, bin), aligns, normalizes, rejects outliers and writes out
 
 import argparse
-import pylab as pb
-pb.ion()
+#import pylab as pb
+#pb.ion()
 import numpy as np
 import GPy
 import math
@@ -16,14 +16,14 @@ import os
 from os.path import basename
 import sys
 import os.path
-pb.ioff()
+#pb.ioff()
 
 # Read command line arguments
 parser = argparse.ArgumentParser(description='Pulsar profile variability studies using GPs')
 parser.add_argument('-f','--filename', help='File 2d data set', required=True)
 parser.add_argument('-p','--pulsar', help='Pulsar name', required=True)
 parser.add_argument('-i','--interval', help='inference interval', type=int, required=True)
-
+parser.add_argument('-m','--modelprofiles', help='recontruct the model profiles', action='store_true')
 args = parser.parse_args()
 
 print 'Read arguments'
@@ -113,8 +113,6 @@ for i in range(bins):
     plt.savefig('./{0}/{1}_bins/bin{2}.png'.format(pulsar,outfile,int(i+leftbin)))
     plt.clf()
 
-
-        
 inferredarray = inferredarray/noiserms
 maxdifference = np.amax(inferredarray)
 mindifference = np.amin(inferredarray)
@@ -190,5 +188,53 @@ yaxis.append(np.linspace(0, bins/allbins, bins))
 print 'yaxis is',yaxis
 print 'yaxis zero is',yaxis[0]
 
-Vf.makemap(inferredarray, -limitdifference, limitdifference, mjdinfer, yaxis[0],mjd, 'MJD', 'Fraction Of Pulse Period', pulsar, './{0}/{1}_inferreddata.png'.format(pulsar,outfile), peakline=allbins/4-leftbin)
+Vf.makemap(inferredarray, -limitdifference, limitdifference, mjdinfer, yaxis[0],mjd, 'Modified Julian Date', 'Fraction Of Pulse Period', pulsar, './{0}/{1}_inferreddata.png'.format(pulsar,outfile), peakline=allbins/4-leftbin)
 
+if (args.modelprofiles):
+
+    if not (os.path.exists('./{0}/model_profiles'.format(pulsar))):
+        os.mkdir('./{0}/model_profiles'.format(pulsar))
+
+    no_bins = inferredarray.shape[0]
+    no_profiles = inferredarray.shape[1]
+
+    model_interval = 10
+
+    model_profiles = np.zeros((no_profiles,no_bins))
+
+    pre_scaling = inferredarray*noiserms
+    for i in range(no_profiles):
+        for j in range(no_bins):
+            model_profiles[i,j] = pre_scaling[j,i] + template[j]
+
+    plot_no = int(np.floor(no_profiles/model_interval))
+
+    for n in range (plot_no):
+        print n+1,'of',plot_no
+        fig=plt.figure()
+        plt.plot(model_profiles[n*model_interval,:])
+        plt.xlim(0,no_bins-1)
+        plt.ylim(-0.1,1.3)
+        plt.xlabel('Pulse Phase Bin')
+        plt.ylabel('Normalised Flux Density')
+        if n < 9:
+            fig.text(0.68, 0.75, '00{0}/{1}' .format(n+1,plot_no), size=16)
+            fig.text(0.68, 0.65, 'Freq. {0} Hz' .format(int(mjd[0])+n*model_interval), size=16)
+            plt.savefig('./{0}/model_profiles/00{1}.png' .format(pulsar,n+1))
+        if n > 8 and n < 99:
+            fig.text(0.68, 0.75, '0{0}/{1}' .format(n+1,plot_no), size=16)
+            fig.text(0.68, 0.65, 'MJD. {0}' .format(int(mjd[0])+n*model_interval), size=16)
+            plt.savefig('./{0}/model_profiles/0{1}.png' .format(pulsar,n+1))
+        if n > 98:
+            fig.text(0.68, 0.75, '{0}/{1}' .format(n+1,plot_no), size=16)
+            fig.text(0.68, 0.65, 'Freq. {0} Hz' .format(int(mjd[0])+n*model_interval), size=16)
+            plt.savefig('./{0}/model_profiles/{1}.png' .format(pulsar,n+1))
+        plt.close()
+        plt.clf()
+
+    os.system('convert -loop 0 ./{0}/model_profiles/*.png ./{0}/animation.gif' .format(pulsar))
+
+    for i in range(100):
+        print 'for profile',i,'sum is',np.sum(model_profiles[i,:])
+
+    np.savetxt('{0}/{0}_model_profiles.txt' .format(pulsar),model_profiles)
