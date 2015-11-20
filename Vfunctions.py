@@ -485,9 +485,6 @@ def combined_map(zoom_region_no,data_norm,data_not, myvmin_norm, myvmax_norm, my
 
     nudot_visible = []
 
-    print 'mjdufer',mjdinferspindown
-    print 'xaxis',xaxis
-#    sys.exit()
     for i in range(nudot.shape[0]):
 	    if i > 3 and i < nudot.shape[0]-3 and mjdinferspindown[i] > xaxis[0] and mjdinferspindown[i] < xaxis[-1]:
 		    nudot_visible.append(nudot[i])
@@ -496,9 +493,9 @@ def combined_map(zoom_region_no,data_norm,data_not, myvmin_norm, myvmax_norm, my
     plt.ylim(np.min(nudot_visible)-0.1*diff_ymin_ymax,np.max(nudot_visible)+0.05*diff_ymin_ymax)
 
 
-    fig.text(0.149, 0.87, '(A)', ha='center', va='center', size=18)
-    fig.text(0.149, 0.59, '(B)', ha='center', va='center', size=18)
-    fig.text(0.149, 0.315, '(C)', ha='center', va='center', size=18)
+    # fig.text(0.149, 0.87, '(A)', ha='center', va='center', size=18)
+    # fig.text(0.149, 0.59, '(B)', ha='center', va='center', size=18)
+    # fig.text(0.149, 0.315, '(C)', ha='center', va='center', size=18)
 
     fig.text(0.05, 0.777, 'Fraction of\nPulse Period', ha='center', va='center', rotation='vertical', size=18)
     fig.text(0.05, 0.503, 'Fraction of\nPulse Period', ha='center', va='center', rotation='vertical', size=18)
