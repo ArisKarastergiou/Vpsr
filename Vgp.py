@@ -85,6 +85,10 @@ mindifference = np.amin(difference)
 # mjds for inference
 #print 'MJD', mjd[0], mjd[-1]
 mjdinfer = np.arange(mjd[0],mjd[-1],interval)
+mjdinferint = mjdinfer.astype(int)
+mjdints = mjd.astype(int)
+mask = np.in1d(mjdinferint, mjdints)
+mjdindices = np.where(mask)[0]
 profilesinfer = mjdinfer.shape[0]
 Llim = np.zeros(profilesinfer)
 Ulim = np.zeros(profilesinfer)
@@ -190,22 +194,26 @@ print 'yaxis zero is',yaxis[0]
 
 Vf.makemap(inferredarray, -limitdifference, limitdifference, mjdinfer, yaxis[0],mjd, 'Modified Julian Date', 'Fraction Of Pulse Period', pulsar, './{0}/{1}_inferreddata.png'.format(pulsar,outfile), peakline=allbins/4-leftbin)
 
+no_bins = inferredarray.shape[0]
+no_profiles = inferredarray.shape[1]
+pre_scaling = inferredarray*noiserms
+for i in range(no_profiles):
+    for j in range(no_bins):
+        model_profiles[i,j] = pre_scaling[j,i] + template[j]
+
+for i in range(profiles):
+    np.savetxt('template_{0}.txt'.format(int(mjd[i])), model_profiles[mjdindices[i]])
+    
+
 if (args.modelprofiles):
 
     if not (os.path.exists('./{0}/model_profiles'.format(pulsar))):
         os.mkdir('./{0}/model_profiles'.format(pulsar))
 
-    no_bins = inferredarray.shape[0]
-    no_profiles = inferredarray.shape[1]
 
     model_interval = 10
 
     model_profiles = np.zeros((no_profiles,no_bins))
-
-    pre_scaling = inferredarray*noiserms
-    for i in range(no_profiles):
-        for j in range(no_bins):
-            model_profiles[i,j] = pre_scaling[j,i] + template[j]
 
     plot_no = int(np.floor(no_profiles/model_interval))
 
@@ -233,8 +241,4 @@ if (args.modelprofiles):
         plt.clf()
 
     os.system('convert -loop 0 ./{0}/model_profiles/*.png ./{0}/animation.gif' .format(pulsar))
-
-    for i in range(100):
-        print 'for profile',i,'sum is',np.sum(model_profiles[i,:])
-
     np.savetxt('{0}/{0}_model_profiles.txt' .format(pulsar),model_profiles)
