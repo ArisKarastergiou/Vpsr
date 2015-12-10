@@ -250,7 +250,7 @@ z.write('{0}' .format(std_off_pulse_data))
 # Make plots of removed profiles if needed
 if (args.badprofiles):
     dir='removed_profiles{0}' .format(suffix)
-    Vf.makeplots(pulsar,removedprofiles,mjdremoved,dir,bins,template=originaltemplate,yllim=-0.1*np.max(originaltemplate),yulim=np.max(aligned_data[left[0]:right[0],:]))
+    Vf.makeplots(pulsar,removedprofiles[:,],mjdremoved,dir,bins,template=None,yllim=-0.1*np.max(removedprofiles[:,0]),yulim=np.max(removedprofiles[:,0]))
 
 outputfile = '{0}/mjd{1}.txt' .format(pulsar,suffix)
 np.savetxt(outputfile, mjdout)
