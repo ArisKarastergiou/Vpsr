@@ -8,7 +8,7 @@ parser = argparse.ArgumentParser(description='Pulsar profile alignment for varia
 parser.add_argument('-p','--pulsar', help='Name as pulsar', required=True)
 parser.add_argument('-d','--directory', help='Directory in which the observation files are located', required=True)
 parser.add_argument('-b','--phasebins', help='Number of phase bins in the observations', type=int, required='True')
-parser.add_argument('-f','--obsfreq', help='Approximate observation frequency', type=int, required='True')
+parser.add_argument('-f','--obsfreq', help='Approximate observation frequency (MHz)', type=int, required='True')
 
 # PASSING THE ARGUMENTS TO VARIABLES
 
@@ -42,7 +42,7 @@ rem_count=0
 
 for i in range(numrows):
     epoch_name = new_y[i]
-    os.system('pdv -Zt {0}/{1} > temp.txt '.format(directory,epoch_name))
+    os.system('pdv -ZFTt {0}/{1} > temp.txt '.format(directory,epoch_name))
     stokes_line = np.genfromtxt('temp.txt', usecols=3, dtype=[('stokesI','float')], skip_header=1)
     if len(stokes_line)!=bins:
         rem_count+=1
@@ -55,9 +55,9 @@ b=0
 removed=0
 for i in range(numrows):
     epoch_name = new_y[i]
-    os.system('pdv -Zt {0}/{1} > temp.txt '.format(directory,epoch_name))
+    os.system('pdv -ZFTt {0}/{1} > temp.txt '.format(directory,epoch_name))
     stokes_line = np.genfromtxt('temp.txt', usecols=3, skip_header=1)
-    if len(stokes_line) !=1024:
+    if len(stokes_line) !=bins:
         removed+=1
     else:
         os.system('vap -nc "mjd, length" {0}/{1} >> mjd.txt'.format(directory,new_y[i]))
@@ -89,7 +89,7 @@ new_mjd = mjd_length_sorted[:,0]
                         
 print "Number of profiles that are not",bins,"bins and therefore removed:",removed,"out of",numrows,"original profiles"  
 stokes_columns = np.transpose(stokes_list)
-stokes_columns2 = np.zeros((1026,num_left))
+stokes_columns2 = np.zeros((bins+2,num_left))
 stokes_columns2 = np.vstack([stokes_columns,new_length,new_mjd])
 
 np.savetxt('{0}_1400list_{1}.txt'.format(pulsar,bins),stokes_columns2, delimiter='\t')
